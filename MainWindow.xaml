@@ -1,0 +1,507 @@
+<Window x:Class="ClaudeCouncilManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:ClaudeCouncilManager.ViewModels"
+        Title="Claude Council Manager"
+        Height="760" Width="1180"
+        MinHeight="520" MinWidth="820"
+        WindowStartupLocation="CenterScreen"
+        Icon="pack://application:,,,/Assets/council.ico"
+        Background="{DynamicResource WindowBackground}"
+        FontFamily="Segoe UI">
+
+
+    <DockPanel>
+        <!-- Top bar -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource TopBarBackground}"
+                BorderBrush="{DynamicResource Border}" BorderThickness="0,0,0,1" Padding="18,10">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Claude Council Manager" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextPrimary}" Margin="0,0,28,0"/>
+                <RadioButton x:Name="CouncilsTab" Content="Concili" GroupName="Nav" IsChecked="True"
+                             Style="{StaticResource NavTabStyle}"/>
+                <RadioButton x:Name="ExpertsTab" Content="Esperti" GroupName="Nav"
+                             Style="{StaticResource NavTabStyle}"/>
+                <RadioButton x:Name="SettingsTab" Content="Impostazioni" GroupName="Nav"
+                             Style="{StaticResource NavTabStyle}"/>
+            </StackPanel>
+        </Border>
+
+        <Grid>
+            <!-- ================================ CONCILI ================================ -->
+            <Grid Visibility="{Binding IsChecked, ElementName=CouncilsTab, Converter={StaticResource BoolToVis}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="380"/>
+                </Grid.ColumnDefinitions>
+
+                <DockPanel Margin="11,12,11,0">
+                    <DockPanel DockPanel.Dock="Top" Margin="7,0,7,4" LastChildFill="True">
+                        <Button DockPanel.Dock="Right" Content="＋  Nuovo concilio" VerticalAlignment="Center"
+                                Command="{Binding AddCouncilCommand}" Style="{StaticResource ToolButtonStyle}"/>
+                        <ToggleButton DockPanel.Dock="Right" Content="Solo preferiti" Margin="0,0,8,0" VerticalAlignment="Center"
+                                      IsChecked="{Binding FavoriteCouncilsOnly}" Style="{StaticResource FilterToggleStyle}"/>
+                        <TextBlock Style="{StaticResource HintText}" VerticalAlignment="Center" Margin="0,0,12,0"
+                                   Text="Un concilio è un gruppo di esperti che lavora in una sua cartella. «Avvia» apre nuove sessioni collegate tra loro, «Riprendi» riapre le ultime conversazioni; clicca un membro per aprire solo la sua sessione."/>
+                    </DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Margin="7,0,7,6" Text="{Binding NewCouncilBlockedReason}"
+                               Style="{StaticResource ErrorLine}"
+                               Visibility="{Binding NewCouncilBlockedReason, Converter={StaticResource NullToVis}}"/>
+
+                    <ListBox ItemsSource="{Binding CouncilsView}" SelectedItem="{Binding SelectedCouncil}"
+                             Style="{StaticResource CardListStyle}">
+                        <ListBox.InputBindings>
+                            <KeyBinding Key="Delete" Command="{Binding RemoveCouncilCommand}"
+                                        CommandParameter="{Binding SelectedCouncil}"/>
+                        </ListBox.InputBindings>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:CouncilViewModel}">
+                                <Grid>
+                                <DockPanel Width="300" MinHeight="168">
+                                    <Grid DockPanel.Dock="Bottom" Margin="0,12,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Button Margin="0,0,5,0" ToolTipService.ShowOnDisabled="True"
+                                                Command="{Binding DataContext.LaunchCouncilCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}">
+                                            <TextBlock Text="▶  Avvia"/>
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+                                                    <Setter Property="ToolTip" Value="Avvia nuove sessioni per i membri (nuove conversazioni)"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasRunningSessions}" Value="True">
+                                                            <Setter Property="ToolTip" Value="Ci sono sessioni aperte: terminale con ■ prima di avviarne di nuove, oppure usa «Riprendi» per riaprire i membri chiusi"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <Button Grid.Column="1" Style="{StaticResource ToolButtonStyle}" Height="44" FontSize="15"
+                                                FontWeight="SemiBold" Margin="5,0,0,0"
+                                                ToolTip="Resume: riapre l'ultima conversazione di ogni membro (claude --resume)"
+                                                ToolTipService.ShowOnDisabled="True"
+                                                Command="{Binding DataContext.ResumeCouncilCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}">
+                                            <TextBlock Text="⟲  Riprendi"/>
+                                        </Button>
+                                        <Button Grid.Column="2" Style="{StaticResource ToolButtonStyle}" Width="44" Height="44"
+                                                Padding="0" Margin="10,0,0,0"
+                                                ToolTip="Termina le sessioni aperte del concilio" ToolTipService.ShowOnDisabled="True"
+                                                Command="{Binding DataContext.TerminateCouncilCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}">
+                                            <TextBlock Text="&#xE71A;" FontFamily="Segoe MDL2 Assets" FontSize="14"/>
+                                        </Button>
+                                    </Grid>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" FontSize="20" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextPrimary}" Margin="0,0,62,2"/>
+                                        <TextBlock Text="{Binding WorkingFolder}" ToolTip="{Binding WorkingFolder}" FontSize="11"
+                                                   TextTrimming="CharacterEllipsis" Margin="0,0,62,10"
+                                                   Foreground="{DynamicResource TextMuted}"/>
+                                        <ItemsControl ItemsSource="{Binding Chips}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:MemberChip}">
+                                                    <Button Command="{Binding DataContext.LaunchMemberCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}"
+                                                            Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                        <Button.ContextMenu>
+                                                            <ContextMenu>
+                                                                <MenuItem Header="Apri / riprendi la sessione"
+                                                                          Command="{Binding PlacementTarget.Tag.LaunchMemberCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                          CommandParameter="{Binding}"/>
+                                                                <MenuItem Header="Termina la sessione"
+                                                                          Command="{Binding PlacementTarget.Tag.TerminateMemberCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                                          CommandParameter="{Binding}"/>
+                                                            </ContextMenu>
+                                                        </Button.ContextMenu>
+                                                        <Button.Style>
+                                                            <Style TargetType="Button" BasedOn="{StaticResource ChipButtonStyle}">
+                                                                <Setter Property="ToolTip" Value="Sessione chiusa: clic per riaprirla (riprende l'ultima conversazione, se c'è). Tasto destro per altre azioni."/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                                        <Setter Property="ToolTip" Value="Sessione aperta"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Ellipse Width="9" Height="9" Fill="{Binding Expert.ColorBrush}"
+                                                                     VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                            <TextBlock Text="{Binding Expert.Name}" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="  ★ coord." VerticalAlignment="Center"
+                                                                       Foreground="{DynamicResource Accent}"
+                                                                       Visibility="{Binding IsCoordinator, Converter={StaticResource BoolToVis}}"/>
+                                                            <TextBlock Text="  ● aperta" VerticalAlignment="Center" FontSize="11"
+                                                                       Foreground="{DynamicResource OkText}"
+                                                                       Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="{Binding Error}" Style="{StaticResource ErrorLine}"
+                                                   Visibility="{Binding Error, Converter={StaticResource NullToVis}}"/>
+                                    </StackPanel>
+                                </DockPanel>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                            Margin="0,-6,-6,0">
+                                    <ToggleButton IsChecked="{Binding IsFavorite}" Style="{StaticResource FavoriteToggleStyle}"
+                                                  Margin="0,0,4,0"/>
+                                    <Button Style="{StaticResource CardDeleteButtonStyle}" Margin="0" ToolTip="Elimina concilio (Canc)"
+                                            Command="{Binding DataContext.RemoveCouncilCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"/>
+                                </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+
+                <!-- Council editor -->
+                <Border Grid.Column="1" Style="{StaticResource EditorPanelStyle}">
+                    <Grid>
+                        <TextBlock Margin="20" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   TextAlignment="Center" Text="{Binding CouncilsEmptyHint}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource HintText}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Councils.Count}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" DataContext="{Binding SelectedCouncil}"
+                                      Visibility="{Binding Converter={StaticResource NullToVis}}">
+                            <StackPanel Margin="20,18">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource SmallToolButtonStyle}" Margin="0"
+                                            Command="{Binding DataContext.RemoveCouncilCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Elimina"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock Text="Concilio" Style="{StaticResource EditorTitle}" VerticalAlignment="Center"/>
+                                </DockPanel>
+
+                                <TextBlock Text="Nome (prefisso delle sessioni: NOME.ESPERTO)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+
+                                <TextBlock Text="Cartella di lavoro (dove partono tutte le sessioni)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding WorkingFolder, Mode=OneWay}" IsReadOnly="True" Style="{StaticResource FieldBox}"
+                                         Foreground="{DynamicResource TextSecondary}"/>
+                                <WrapPanel Margin="0,6,0,0">
+                                    <Button Content="Scegli…" Style="{StaticResource SmallToolButtonStyle}"
+                                            Command="{Binding DataContext.ChangeWorkingFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"/>
+                                    <Button Content="Apri" Style="{StaticResource SmallToolButtonStyle}"
+                                            Command="{Binding DataContext.OpenWorkingFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"/>
+                                </WrapPanel>
+                                <TextBlock Style="{StaticResource HintText}" Margin="0,4,0,0"
+                                           Text="Claude Code lega le conversazioni alla cartella da cui partono: è questa cartella che permette a «Riprendi» di riaprirle. CLAUDE.md e skill di ogni esperto vengono caricati dalla sua cartella."/>
+
+                                <TextBlock Text="Membri" Style="{StaticResource FieldLabel}"/>
+                                <ItemsControl ItemsSource="{Binding MemberChoices}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:MemberChoiceViewModel}">
+                                            <CheckBox IsChecked="{Binding IsMember}" IsEnabled="{Binding IsEditable}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Ellipse Width="9" Height="9" Fill="{Binding Expert.ColorBrush}"
+                                                             VerticalAlignment="Center" Margin="2,0,6,0"/>
+                                                    <TextBlock Text="{Binding Expert.Name}"/>
+                                                    <TextBlock Text="  ★ coordinatore" Foreground="{DynamicResource Accent}"
+                                                               Visibility="{Binding Expert.IsCoordinator, Converter={StaticResource BoolToVis}}"/>
+                                                    <TextBlock Text="  (aggiunto automaticamente)" Foreground="{DynamicResource TextMuted}"
+                                                               Visibility="{Binding IsAutomatic, Converter={StaticResource BoolToVis}}"/>
+                                                </StackPanel>
+                                            </CheckBox>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="Nessun esperto definito: aggiungili nella scheda «Esperti»." >
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource HintText}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding MemberChoices.Count}" Value="0">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <TextBlock Text="{Binding CoordinatorInfo}" Style="{StaticResource HintText}" Margin="0,4,0,0"/>
+
+                                <TextBlock Text="Prompt iniziale (opzionale)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding InitialPrompt, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource MultiLineBox}"/>
+
+                                <TextBlock Text="Istruzioni aggiuntive del concilio (opzionale)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding ExtraInstructions, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource MultiLineBox}"/>
+                                <TextBlock Style="{StaticResource HintText}" Margin="0,4,0,0"
+                                           Text="Vengono aggiunte al protocollo generato per ogni membro (elenco membri, coordinatore, regole di comunicazione, cartella condivisa)."/>
+
+                                <TextBlock Text="{Binding Error}" Style="{StaticResource ErrorLine}"
+                                           Visibility="{Binding Error, Converter={StaticResource NullToVis}}"/>
+
+                                <WrapPanel Margin="0,20,0,0">
+                                    <Button Content="Protocolli e cartella condivisa" Style="{StaticResource SmallToolButtonStyle}"
+                                            Command="{Binding DataContext.OpenCouncilFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip="Protocolli generati e cartella condivisa (shared)"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- ================================ ESPERTI ================================ -->
+            <Grid Visibility="{Binding IsChecked, ElementName=ExpertsTab, Converter={StaticResource BoolToVis}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="380"/>
+                </Grid.ColumnDefinitions>
+
+                <DockPanel Margin="11,12,11,0">
+                    <DockPanel DockPanel.Dock="Top" Margin="7,0,7,4">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ToggleButton Content="Solo preferiti" Margin="0,0,8,0"
+                                          IsChecked="{Binding FavoriteExpertsOnly}" Style="{StaticResource FilterToggleStyle}"/>
+                            <Button Content="Aggiorna" Command="{Binding RefreshExpertsCommand}"
+                                    Style="{StaticResource ToolButtonStyle}" Margin="0,0,8,0"
+                                    ToolTip="Rileggi CLAUDE.md, skill ed expert.json dalle cartelle (es. dopo un git pull)"/>
+                            <Button Content="Importa esperti…" Command="{Binding ImportExpertsCommand}"
+                                    Style="{StaticResource ToolButtonStyle}" Margin="0,0,8,0"
+                                    ToolTip="Registra gli esperti già pronti in una cartella (es. il repo di un collega)"/>
+                            <Button Content="＋  Aggiungi esperto…" Command="{Binding AddExpertCommand}"
+                                    Style="{StaticResource ToolButtonStyle}"/>
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource HintText}" VerticalAlignment="Center" Margin="0,0,12,0"
+                                   Text="Un esperto è una cartella con il suo CLAUDE.md e le sue skill (.claude\skills\&lt;nome&gt;\SKILL.md). Le sessioni partono nella cartella di lavoro del concilio e caricano CLAUDE.md e skill dalla cartella dell'esperto."/>
+                    </DockPanel>
+
+                    <ListBox ItemsSource="{Binding ExpertsView}" SelectedItem="{Binding SelectedExpert}"
+                             Style="{StaticResource CardListStyle}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:ExpertViewModel}">
+                                <Grid>
+                                <DockPanel Width="300">
+                                    <Border DockPanel.Dock="Left" Width="5" CornerRadius="2.5" Margin="0,0,12,0"
+                                            Background="{Binding ColorBrush}"/>
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Name}" FontSize="17" FontWeight="SemiBold" MaxWidth="150"
+                                                       TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextPrimary}"/>
+                                            <TextBlock Text="  ★ coordinatore" FontSize="12" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource Accent}"
+                                                       Visibility="{Binding IsCoordinator, Converter={StaticResource BoolToVis}}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Folder}" FontSize="11" Margin="0,2,26,6"
+                                                   TextTrimming="CharacterEllipsis" ToolTip="{Binding Folder}"
+                                                   Foreground="{DynamicResource TextMuted}"/>
+                                        <TextBlock Text="{Binding Settings}" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
+                                        <TextBlock Text="{Binding StatusText}" FontSize="12" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource TextSecondary}"/>
+                                        <TextBlock Text="{Binding Error}" Style="{StaticResource ErrorLine}"
+                                                   Visibility="{Binding Error, Converter={StaticResource NullToVis}}"/>
+                                    </StackPanel>
+                                </DockPanel>
+                                <ToggleButton IsChecked="{Binding IsFavorite}" Style="{StaticResource FavoriteToggleStyle}"
+                                              HorizontalAlignment="Right" Margin="0,-6,-6,0"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+
+                <!-- Expert editor -->
+                <Border Grid.Column="1" Style="{StaticResource EditorPanelStyle}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" DataContext="{Binding SelectedExpert}"
+                                  Visibility="{Binding Converter={StaticResource NullToVis}}">
+                        <StackPanel Margin="20,18">
+                            <TextBlock Text="Esperto" Style="{StaticResource EditorTitle}"/>
+
+                            <TextBlock Text="Nome" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+
+                            <CheckBox IsChecked="{Binding IsCoordinator}" Margin="0,14,0,0"
+                                      Content="Coordinatore dei concili" FontWeight="SemiBold"/>
+                            <TextBlock Style="{StaticResource HintText}" Margin="20,0,0,0"
+                                       Text="Ne esiste uno solo (spuntarlo qui lo toglie all'esperto precedente). Viene aggiunto in automatico ai concili con due o più esperti e riceve il prompt iniziale."/>
+
+                            <TextBlock Text="Cartella" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Text="{Binding Folder, Mode=OneWay}" IsReadOnly="True" Style="{StaticResource FieldBox}"
+                                     Foreground="{DynamicResource TextSecondary}"/>
+                            <WrapPanel Margin="0,6,0,0">
+                                <Button Content="Apri" Style="{StaticResource SmallToolButtonStyle}"
+                                        Command="{Binding DataContext.OpenExpertFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                                <Button Content="Cambia…" Style="{StaticResource SmallToolButtonStyle}"
+                                        Command="{Binding DataContext.ChangeExpertFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                            </WrapPanel>
+
+                            <TextBlock Text="Descrizione (presentata agli altri membri del concilio)" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource MultiLineBox}" Height="64"/>
+
+                            <TextBlock Text="Colore" Style="{StaticResource FieldLabel}"/>
+                            <ItemsControl ItemsSource="{x:Static vm:MainViewModel.Palette}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Style="{StaticResource SwatchButtonStyle}" Background="{Binding}"
+                                                ToolTip="{Binding}"
+                                                Command="{Binding DataContext.SetColorCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Border Width="30" Height="30" CornerRadius="6" Background="{Binding ColorBrush}" Margin="0,0,8,0"/>
+                                <TextBox Text="{Binding Color, UpdateSourceTrigger=PropertyChanged}" Width="110"
+                                         Style="{StaticResource FieldBox}" ToolTip="#RRGGBB"/>
+                            </StackPanel>
+
+                            <TextBlock Text="Modello (vuoto = predefinito di Claude Code)" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Text="{Binding ModelName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"
+                                     ToolTip="Alias (opus, sonnet, …) o nome completo del modello"/>
+                            <ItemsControl ItemsSource="{x:Static vm:MainViewModel.ModelOptions}" Margin="0,6,0,0"
+                                          ItemTemplate="{StaticResource ModelChipTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+
+                            <TextBlock Text="Effort (vuoto = predefinito di Claude Code)" Style="{StaticResource FieldLabel}"/>
+                            <TextBox Text="{Binding Effort, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                            <ItemsControl ItemsSource="{x:Static vm:MainViewModel.EffortOptions}" Margin="0,6,0,0"
+                                          ItemTemplate="{StaticResource EffortChipTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+
+                            <TextBlock Text="CLAUDE.md e skill" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{Binding StatusText}" FontSize="12" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextPrimary}"/>
+                            <WrapPanel Margin="0,8,0,0">
+                                <Button Content="Modifica CLAUDE.md" Style="{StaticResource SmallToolButtonStyle}"
+                                        Command="{Binding DataContext.EditClaudeMdCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                                <Button Content="Crea CLAUDE.md" Style="{StaticResource SmallToolButtonStyle}"
+                                        Command="{Binding DataContext.CreateClaudeMdCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                                <Button Content="Apri cartella skill" Style="{StaticResource SmallToolButtonStyle}"
+                                        Command="{Binding DataContext.OpenSkillsFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip="{Binding SkillsFolder}"/>
+                            </WrapPanel>
+                            <TextBlock Style="{StaticResource HintText}" Margin="0,6,0,0"
+                                       Text="Le skill stanno nella cartella dell'esperto, non nel profilo utente: una sottocartella per skill con il suo SKILL.md, in .claude\skills\&lt;nome&gt;\. Così l'esperto è autonomo e versionabile su git. Dopo averle aggiunte premi «Aggiorna»."/>
+
+                            <TextBlock Text="{Binding Error}" Style="{StaticResource ErrorLine}"
+                                       Visibility="{Binding Error, Converter={StaticResource NullToVis}}"/>
+
+                            <TextBlock Style="{StaticResource HintText}" Margin="0,18,0,0"
+                                       Text="Le impostazioni dell'esperto vengono salvate anche in expert.json nella sua cartella: insieme a CLAUDE.md e skill puoi versionarle su git e un collega può importarle con «Importa esperti…»."/>
+
+                            <Button Content="Rimuovi esperto" Style="{StaticResource SmallToolButtonStyle}"
+                                    HorizontalAlignment="Left" Margin="0,24,0,0"
+                                    Command="{Binding DataContext.RemoveExpertCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    ToolTip="Toglie l'esperto dalla configurazione; la cartella non viene cancellata"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+
+            <!-- ============================== IMPOSTAZIONI ============================== -->
+            <ScrollViewer Visibility="{Binding IsChecked, ElementName=SettingsTab, Converter={StaticResource BoolToVis}}"
+                          VerticalScrollBarVisibility="Auto" DataContext="{Binding Settings}">
+                <StackPanel Margin="28,20" MaxWidth="780" HorizontalAlignment="Left">
+                    <TextBlock Text="Avvio delle sessioni" Style="{StaticResource EditorTitle}"/>
+                    <TextBlock Style="{StaticResource HintText}" Margin="0,6,0,0"
+                               Text="Ogni sessione di Claude parte in PowerShell 7, nella cartella di lavoro del concilio. Scegli dove aprirla:"/>
+
+                    <RadioButton GroupName="Host" IsChecked="{Binding UseWindowsTerminal}" Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Windows Terminal" FontWeight="SemiBold"/>
+                            <TextBlock Style="{StaticResource HintText}"
+                                       Text="Una finestra per concilio, una tab per membro con il nome e il colore dell'esperto."/>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton GroupName="Host" IsChecked="{Binding UsePowerShellWindow}" Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Finestra PowerShell" FontWeight="SemiBold"/>
+                            <TextBlock Style="{StaticResource HintText}" Text="Una finestra separata per ogni membro."/>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton GroupName="Host" IsChecked="{Binding UseCustom}" Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Comando personalizzato" FontWeight="SemiBold"/>
+                            <TextBlock Style="{StaticResource HintText}"
+                                       Text="Un altro terminale (WezTerm, Alacritty, Tabby, …): indica il programma e gli argomenti con cui avviarlo."/>
+                        </StackPanel>
+                    </RadioButton>
+                    <StackPanel Margin="26,4,0,0" IsEnabled="{Binding UseCustom}">
+                        <TextBlock Text="Programma" Style="{StaticResource FieldLabel}"/>
+                        <TextBox Text="{Binding CustomProgram, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                        <TextBlock Text="Argomenti" Style="{StaticResource FieldLabel}"/>
+                        <TextBox Text="{Binding CustomArguments, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                        <TextBlock Style="{StaticResource HintText}" Margin="0,6,0,0">
+                            <Run Text="Segnaposto disponibili:"/>
+                            <Run Text="{Binding CustomPlaceholders, Mode=OneWay}" FontFamily="Consolas"/>
+                            <LineBreak/>
+                            <Run Text="La coppia pwsh / pwshArgs avvia la sessione di Claude e deve esserci. Metti tra virgolette i valori che possono contenere spazi, es. --cwd &quot;{workdir}&quot;."/>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <TextBlock Text="PowerShell" Style="{StaticResource EditorTitle}" Margin="0,30,0,0"/>
+                    <TextBlock Text="{Binding PowerShellInfo}" TextWrapping="Wrap" Margin="0,8,0,0"
+                               Foreground="{DynamicResource TextPrimary}"/>
+                    <TextBlock Text="Percorso di pwsh.exe (vuoto = versione più recente installata)" Style="{StaticResource FieldLabel}"/>
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
+                            <Button Content="Sfoglia…" Command="{Binding BrowsePowerShellCommand}" Style="{StaticResource SmallToolButtonStyle}"/>
+                            <Button Content="Rileva automaticamente" Command="{Binding AutoDetectPowerShellCommand}"
+                                    Style="{StaticResource SmallToolButtonStyle}" Margin="0"/>
+                        </StackPanel>
+                        <TextBox Text="{Binding PowerShellPath, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FieldBox}"/>
+                    </DockPanel>
+
+                    <TextBlock Text="{Binding Error}" Style="{StaticResource ErrorLine}" Margin="0,16,0,0"
+                               Visibility="{Binding Error, Converter={StaticResource NullToVis}}"/>
+                    <TextBlock Style="{StaticResource HintText}" Margin="0,16,0,0"
+                               Text="Le impostazioni si salvano subito e valgono per le prossime sessioni avviate."/>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</Window>

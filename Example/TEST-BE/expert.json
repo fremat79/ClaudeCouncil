@@ -1,0 +1,6 @@
+{
+  "name": "TEST-BE",
+  "description": "Test backend: unitari, integrazione, contratti API",
+  "color": "#7B6CD9",
+  "isCoordinator": false
+}

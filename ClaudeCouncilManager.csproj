@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- WFO0003 wants WinForms DPI settings out of app.manifest; this is a WPF app (WinForms only
+         hosts the tray icon), so the manifest's PerMonitorV2 declaration is the right place. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+    <RootNamespace>ClaudeCouncilManager</RootNamespace>
+    <AssemblyName>ClaudeCouncilManager</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\council.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\council.ico" />
+  </ItemGroup>
+
+  <!-- WinForms is enabled only for the tray icon (NotifyIcon, used via the "WinForms" alias).
+       Drop its implicit global usings so bare names like Application / MessageBox / Color
+       resolve to WPF, not WinForms / System.Drawing. -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <!-- Markdown templates compiled into the exe; read by Services/Templates via their logical name. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Templates\*.md" LogicalName="Templates.%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.11" />
+    <PackageReference Include="System.Management" Version="10.0.11" />
+  </ItemGroup>
+
+</Project>
