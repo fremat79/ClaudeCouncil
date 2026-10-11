@@ -13,7 +13,7 @@
     <RootNamespace>ClaudeCouncilManager</RootNamespace>
     <AssemblyName>ClaudeCouncilManager</AssemblyName>
     <!-- Read by Installer.iss for the setup's version and file name. -->
-    <Version>1.0.0</Version>
+    <Version>1.0.0.1</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\council.ico</ApplicationIcon>
   </PropertyGroup>
