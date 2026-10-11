@@ -62,7 +62,7 @@ public sealed class CouncilViewModel : ObservableObject
         _changed();
     }
 
-    /// <summary>True when at least one member has a recorded session that «Riprendi» can reopen.</summary>
+    /// <summary>True when at least one member has a recorded session that Resume can reopen.</summary>
     public bool CanResume => Members.Any(m => Model.SessionFor(m.Id) is not null);
 
     public bool IsFavorite
@@ -138,10 +138,10 @@ public sealed class CouncilViewModel : ObservableObject
         }
     }
 
-    /// <summary>True when at least one member's session is open right now («Termina» is enabled).</summary>
+    /// <summary>True when at least one member's session is open right now (Stop is enabled).</summary>
     public bool HasRunningSessions => Chips.Any(c => c.IsRunning);
 
-    /// <summary>True when every member's session is open («Riprendi» has nothing left to reopen).</summary>
+    /// <summary>True when every member's session is open (Resume has nothing left to reopen).</summary>
     public bool AllSessionsRunning => Chips is { Count: > 0 } chips && chips.All(c => c.IsRunning);
 
     /// <summary>One line under the member list explaining who coordinates (or why nobody does).</summary>
@@ -152,11 +152,11 @@ public sealed class CouncilViewModel : ObservableObject
             var members = Members;
             if (members.Count == 0) return "";
             if (members.Count == 1)
-                return "Un solo esperto: nessun coordinatore, si apre una sessione singola che riceve il prompt iniziale.";
+                return "A single expert: no coordinator; it opens one session, which gets the initial prompt.";
             if (Coordinator is not { } coordinator) return "";
-            return $"Coordinatore: {coordinator.Name}"
-                   + (IsCoordinatorAutoIncluded ? " (aggiunto automaticamente)" : "")
-                   + ". Riceve il prompt iniziale, delega ai membri e raccoglie le risposte; viene avviato per ultimo.";
+            return $"Coordinator: {coordinator.Name}"
+                   + (IsCoordinatorAutoIncluded ? " (added automatically)" : "")
+                   + ". It gets the initial prompt, delegates to the members and collects their answers; it starts last.";
         }
     }
 

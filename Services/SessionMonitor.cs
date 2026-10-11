@@ -20,7 +20,7 @@ public sealed record RunningSession(string Name, int ProcessId, int ParentProces
 /// </summary>
 public static partial class SessionMonitor
 {
-    // Shells a session runs in; only these are closed by «Termina» (never a terminal emulator itself).
+    // Shells a session runs in; only these are closed by Stop (never a terminal emulator itself).
     private static readonly string[] HostShells = { "pwsh", "powershell" };
 
     /// <summary>The running claude.exe processes started with --name; empty if WMI can't be queried.</summary>
@@ -74,7 +74,7 @@ public static partial class SessionMonitor
         }
         catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
         {
-            throw new InvalidOperationException($"Impossibile terminare la sessione {session.Name}:\n\n{ex.Message}");
+            throw new InvalidOperationException($"Can't stop session {session.Name}:\n\n{ex.Message}");
         }
 
         if (closeTerminal) CloseHostShell(session.ParentProcessId);
@@ -98,7 +98,7 @@ public static partial class SessionMonitor
         }
         catch (Exception ex) when (ex is InvalidOperationException or Win32Exception)
         {
-            throw new InvalidOperationException($"La sessione è terminata, ma non è stato possibile chiudere il suo terminale:\n\n{ex.Message}");
+            throw new InvalidOperationException($"The session was stopped, but its terminal couldn't be closed:\n\n{ex.Message}");
         }
     }
 

@@ -124,7 +124,7 @@ public sealed class ExpertViewModel : ObservableObject
             var parts = new List<string>();
             if (!string.IsNullOrWhiteSpace(Model.Model)) parts.Add(Model.Model);
             if (!string.IsNullOrWhiteSpace(Model.Effort)) parts.Add(Model.Effort);
-            return parts.Count == 0 ? "modello predefinito" : string.Join(" · ", parts);
+            return parts.Count == 0 ? "default model" : string.Join(" · ", parts);
         }
     }
 
@@ -136,11 +136,11 @@ public sealed class ExpertViewModel : ObservableObject
 
     public IReadOnlyList<string> Skills => _status.Skills;
 
-    public string SkillsText => _status.Skills.Count == 0 ? "nessuna skill" : "skill: " + string.Join(", ", _status.Skills);
+    public string SkillsText => _status.Skills.Count == 0 ? "no skills" : "skills: " + string.Join(", ", _status.Skills);
 
     public string StatusText => !_status.FolderExists
-        ? "Cartella non trovata"
-        : _status.HasClaudeMd ? "CLAUDE.md ✓ · " + SkillsText : "CLAUDE.md mancante · " + SkillsText;
+        ? "Folder not found"
+        : _status.HasClaudeMd ? "CLAUDE.md ✓ · " + SkillsText : "CLAUDE.md missing · " + SkillsText;
 
     /// <summary>Set by <see cref="MainViewModel"/> validation (needs the global view for uniqueness).</summary>
     public string? Error

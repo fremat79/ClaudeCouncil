@@ -1,6 +1,6 @@
 {
   "name": "TEST-FE",
-  "description": "Test frontend: unitari e di componente",
+  "description": "Frontend tests: unit and component",
   "color": "#B866C9",
   "isCoordinator": false
 }

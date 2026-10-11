@@ -1,6 +1,6 @@
 {
   "name": "DEV-FE",
-  "description": "Sviluppo frontend: interfaccia, interazione, integrazione con le API",
+  "description": "Frontend development: user interface, interaction, API integration",
   "color": "#3FA7A0",
   "isCoordinator": false
 }

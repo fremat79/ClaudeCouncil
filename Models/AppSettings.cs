@@ -25,6 +25,9 @@ public sealed class AppSettings
     /// <summary>Explicit pwsh.exe to use; empty means the newest PowerShell 7 found on the machine.</summary>
     public string? PowerShellPath { get; set; }
 
+    /// <summary>Explicit claude.exe to use; empty means the one found by ClaudeLocator.</summary>
+    public string? ClaudePath { get; set; }
+
     /// <summary>Program started for <see cref="SessionHost.Custom"/>.</summary>
     public string CustomProgram { get; set; } = "";
 
@@ -32,8 +35,8 @@ public sealed class AppSettings
     public string CustomArguments { get; set; } = "";
 
     /// <summary>
-    /// «Termina» also closes the terminal tab/window hosting the session. Remembered from the
-    /// last choice in the terminate dialog.
+    /// Stop also closes the terminal tab/window hosting the session. Remembered from the
+    /// last choice in the stop dialog.
     /// </summary>
     public bool CloseTerminalOnTerminate { get; set; } = true;
 }

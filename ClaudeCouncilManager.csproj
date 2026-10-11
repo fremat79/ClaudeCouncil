@@ -12,6 +12,8 @@
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
     <RootNamespace>ClaudeCouncilManager</RootNamespace>
     <AssemblyName>ClaudeCouncilManager</AssemblyName>
+    <!-- Read by Installer.iss for the setup's version and file name. -->
+    <Version>1.0.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\council.ico</ApplicationIcon>
   </PropertyGroup>

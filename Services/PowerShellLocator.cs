@@ -59,18 +59,18 @@ public static class PowerShellLocator
         {
             pwsh = Describe(configuredPath.Trim())
                    ?? throw new InvalidOperationException(
-                       "Il PowerShell indicato nelle Impostazioni non esiste:\n\n" + configuredPath);
+                       "The PowerShell set in Settings doesn't exist:\n\n" + configuredPath);
         }
         else
         {
             pwsh = FindLatest() ?? throw new InvalidOperationException(
-                "PowerShell 7 non trovato. Installalo (winget install Microsoft.PowerShell) "
-                + "oppure indica il percorso di pwsh.exe nelle Impostazioni.");
+                "PowerShell 7 not found. Install it (winget install Microsoft.PowerShell) "
+                + "or set the path of pwsh.exe in Settings.");
         }
 
         if (pwsh.Version is not null && pwsh.Version < Minimum)
             throw new InvalidOperationException(
-                $"Serve PowerShell {Minimum} o successivo; quello configurato è {pwsh.Version}:\n\n{pwsh.Path}");
+                $"PowerShell {Minimum} or later is required; the configured one is {pwsh.Version}:\n\n{pwsh.Path}");
         return pwsh;
     }
 

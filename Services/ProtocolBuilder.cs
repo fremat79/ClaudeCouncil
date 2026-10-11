@@ -21,7 +21,7 @@ public static class ProtocolBuilder
 
         var extra = string.IsNullOrWhiteSpace(council.ExtraInstructions)
             ? ""
-            : "\n## Istruzioni specifiche del concilio\n\n" + council.ExtraInstructions.Trim() + "\n";
+            : "\n## Council-specific instructions\n\n" + council.ExtraInstructions.Trim() + "\n";
 
         return Templates.Load("CouncilProtocol.md")
             .Replace("{{ROLE_SECTION}}", roleSection)
@@ -41,8 +41,8 @@ public static class ProtocolBuilder
         foreach (var m in members)
         {
             sb.Append("- `").Append(Naming.SessionName(council.Name, m.Name)).Append("` - **").Append(m.Name).Append("**");
-            if (m.Id == coordinator.Id) sb.Append(" (coordinatore)");
-            if (m.Id == self.Id) sb.Append(" (tu)");
+            if (m.Id == coordinator.Id) sb.Append(" (coordinator)");
+            if (m.Id == self.Id) sb.Append(" (you)");
             if (!string.IsNullOrWhiteSpace(m.Description))
                 sb.Append(": ").Append(m.Description.Trim().ReplaceLineEndings(" "));
             sb.Append('\n');

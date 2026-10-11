@@ -27,7 +27,7 @@ public static class ExpertInspector
     {
         var path = Path.Combine(folder, "CLAUDE.md");
         if (File.Exists(path))
-            throw new InvalidOperationException("Esiste già un CLAUDE.md in questa cartella:\n\n" + path);
+            throw new InvalidOperationException("This folder already has a CLAUDE.md:\n\n" + path);
 
         var text = Templates.Load("ExpertClaudeMd.md").Replace("{{NAME}}", expertName);
         File.WriteAllText(path, text, new UTF8Encoding(false));

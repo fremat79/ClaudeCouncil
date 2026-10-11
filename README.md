@@ -1,122 +1,148 @@
 # Claude Council Manager
 
-App desktop Windows (WPF, .NET 10) per configurare e avviare **concili**: gruppi di sessioni
-interattive di [Claude Code](https://code.claude.com) che lavorano insieme sullo stesso progetto e
-si scambiano messaggi.
+A Windows desktop app (WPF, .NET 10) to set up and launch **councils**: groups of interactive
+[Claude Code](https://code.claude.com) sessions that work together on the same project and message
+each other.
 
-- Un **esperto** è una cartella con il suo `CLAUDE.md`, le sue skill e un `expert.json`, ad
-  esempio `DEV-BE`, `QA` o `TEST-E2E`. Si versiona su git e si condivide con i colleghi.
-- Un **concilio** è una cartella di lavoro (il progetto) più un gruppo di esperti. Con due o più
-  esperti si aggiunge in automatico il **coordinatore**: riceve il tuo obiettivo, lo divide tra gli
-  esperti e raccoglie i risultati.
-- **«Avvia»** apre una sessione per ogni membro (di default una tab di Windows Terminal).
-  **«Riprendi»** riapre le ultime conversazioni. **■** termina le sessioni del concilio.
+- An **expert** is a folder with its own `CLAUDE.md`, its skills and an `expert.json`, for example
+  `DEV-BE`, `QA` or `TEST-E2E`. You version it in git and share it with your colleagues.
+- A **council** is a working folder (the project) plus a group of experts. With two or more experts
+  the **coordinator** joins automatically: it takes your goal, splits it among the experts and
+  collects the results.
+- **Start** opens a session for each member (a Windows Terminal tab by default). **Resume** reopens
+  the last conversations. **■** stops the council's sessions.
 
-## Requisiti
+![Councils tab: the SHOP council with two running sessions and the editor](docs/images/councils.png)
+
+## Requirements
 
 | | |
 |---|---|
-| Sistema | Windows 10 o 11 |
-| Claude Code | **2.1.234 o successivo**, installato e con login fatto. Verifica con `claude --version`. Le versioni precedenti non hanno la messaggistica tra sessioni. |
-| PowerShell | **PowerShell 7.3 o successivo** (`pwsh`): le sessioni partono sempre lì, con la versione più recente installata. Installalo con `winget install Microsoft.PowerShell`. Windows PowerShell 5.1 non basta. |
-| Terminale | [Windows Terminal](https://aka.ms/terminal), consigliato: ogni concilio diventa una finestra con una tab per membro. In alternativa, dalle **Impostazioni** puoi usare finestre PowerShell separate o un altro terminale. |
+| System | Windows 10 or 11 |
+| Claude Code | **2.1.234 or later**, native install (`claude.exe`), signed in. Earlier versions lack cross-session messaging. The app checks this itself: without Claude Code, experts and councils can be created and edited but not started. If you only have the npm version, install the native one with `claude install`. |
+| PowerShell | **PowerShell 7.3 or later** (`pwsh`): sessions always run in it, using the newest installed version. Install it with `winget install Microsoft.PowerShell`. Windows PowerShell 5.1 is not enough. |
+| Terminal | [Windows Terminal](https://aka.ms/terminal), recommended: each council becomes one window with a tab per member. Alternatively, in **Settings** you can use separate PowerShell windows or another terminal. |
 | Build | .NET 10 SDK |
 
-## Onboarding
+## Installation
 
-Questo percorso usa gli esperti della cartella [`Example`](Example): un coordinatore (`LEAD`), `QA`,
-`DEV-BE`, `DEV-FE`, `TEST-BE`, `TEST-FE` e `TEST-E2E`.
+Run `ClaudeCouncilManager-Setup-<version>.exe` (see [Building the installer](#building-the-installer)):
 
-### 1. Avvia l'app
+- it installs the app for your user only, in `%LOCALAPPDATA%\Programs\Claude Council Manager`,
+  without asking for administrator rights;
+- it creates a Start menu shortcut; a desktop shortcut is optional;
+- if the app is open it closes it before updating. Claude sessions already running keep running.
+
+Uninstalling (from *Installed apps* or the Start menu) asks whether to also delete the app's data
+(experts, councils, settings). The default answer is **No**. The expert folders and Claude Code's
+conversations are never touched.
+
+## Getting started
+
+This walkthrough uses the experts in the [`Example`](Example) folder: a coordinator (`LEAD`), `QA`,
+`DEV-BE`, `DEV-FE`, `TEST-BE`, `TEST-FE` and `TEST-E2E`.
+
+### 1. Start the app
+
+From the Start menu if you installed it. From source:
 
 ```powershell
 dotnet run
 ```
 
-In alternativa apri `ClaudeCouncilManager.sln` in Visual Studio. Al primo avvio l'app crea il suo
-database in `%LOCALAPPDATA%\ClaudeCouncilManager`.
+Or open `ClaudeCouncilManager.sln` in Visual Studio. On first start the app creates its database in
+`%LOCALAPPDATA%\ClaudeCouncilManager`.
 
-### 2. Prepara la tua cartella di esperti
+### 2. Set up your expert folder
 
-Copia `Example` in una cartella tua, per esempio `C:\Esperti`. È meglio se è un repository git, così
-puoi condividerla con il team. Non usare `Example` direttamente: quando modifichi un esperto
-nell'app, l'app aggiorna il suo `expert.json`, e così modificheresti gli esempi del repo.
+Copy `Example` to a folder of your own, for example `C:\Experts`, ideally a git repository so you
+can share it with your team. Don't use `Example` directly: when you edit an expert, the app updates
+its `expert.json`, and you would be changing the repo's samples.
 
-### 3. Importa gli esperti
+### 3. Import the experts
 
-Scheda **Esperti** → **Importa esperti…** → scegli `C:\Esperti`.
+**Experts** tab → **Import experts…** → choose `C:\Experts`.
 
-L'anteprima elenca le 7 cartelle trovate e segnala che `LEAD` diventerà il coordinatore. Premi
-**Importa 7 esperti**.
+The preview lists the 7 folders found and shows that `LEAD` will become the coordinator. Click
+**Import 7 experts**.
 
-### 4. Personalizza gli esperti
+![Import experts… preview with the 7 sample experts](docs/images/import.png)
 
-Seleziona un esperto per modificarlo nel pannello a destra:
+### 4. Customize the experts
 
-- **Modifica CLAUDE.md**: sono le istruzioni dell'esperto (ruolo, perimetro, cosa consegnare). Gli
-  esempi sono generici: adattali al tuo stack e alle tue convenzioni.
-- **Modello / Effort**: vuoti significa che si usano i valori predefiniti di Claude Code. Per
-  esempio puoi dare `opus · high` al coordinatore e `sonnet` ai tester.
-- **Apri cartella skill**: aggiungi le skill dell'esperto, una sottocartella per skill con il suo
-  `SKILL.md`.
-- **Coordinatore dei concili**: ce n'è uno solo. Spuntarlo su un esperto lo toglie al precedente.
+Select an expert to edit it in the right-hand panel:
 
-Le modifiche vengono salvate subito, sia nel database sia nell'`expert.json` dell'esperto.
+- **Edit CLAUDE.md**: the expert's instructions (role, scope, what it delivers). The samples are
+  generic: adapt them to your stack and conventions.
+- **Model / Effort**: empty means Claude Code's defaults. For example, give the coordinator
+  `opus · high` and the testers `sonnet`.
+- **Open skills folder**: add the expert's skills, one subfolder per skill with its `SKILL.md`.
+- **Council coordinator**: there is only one. Ticking it on an expert clears it on the previous one.
 
-### 5. Crea un concilio
+Changes are saved right away, both in the database and in the expert's `expert.json`.
 
-Scheda **Concili** → **Nuovo concilio**. Il pulsante si abilita solo quando esistono un
-coordinatore e almeno un altro esperto.
+![Experts tab: the expert cards and the editor of the LEAD coordinator](docs/images/experts.png)
 
-1. Scegli la **cartella di lavoro**: è il progetto su cui lavorerà il concilio, per esempio il
-   clone del repo. Tutte le sessioni partono da qui. Il nome del concilio viene proposto dal nome
-   della cartella.
-2. Spunta gli esperti, per esempio `DEV-BE`, `DEV-FE` e `QA`. `LEAD` si aggiunge da solo come
-   coordinatore.
-3. Facoltativo: scrivi un **prompt iniziale** per il coordinatore, ad esempio *«Aggiungi
-   l'esportazione CSV degli ordini, con test»*.
+The heart (♥) on a card adds the expert to your favorites, which always stay at the top of the
+list; **Favorites only** filters the list. Councils work the same way.
 
-### 6. Avvia il concilio
+### 5. Create a council
 
-Premi **▶ Avvia**:
+**Councils** tab → **New council**. The button is enabled only once there is a coordinator and at
+least one other expert.
 
-- si apre una finestra di Windows Terminal con una tab per membro;
-- il coordinatore parte per ultimo, quando gli altri sono già raggiungibili, e riceve il prompt
-  iniziale;
-- la prima volta che una cartella di lavoro viene usata, ogni tab chiede se ti fidi della
-  cartella: conferma.
+1. Choose the **working folder**: the project the council works on, for example a clone of the
+   repo. Every session starts there. The council's name is suggested from the folder's name.
+2. Tick the experts, for example `DEV-BE`, `DEV-FE` and `QA`. `LEAD` joins by itself as the
+   coordinator.
+3. Optionally, write an **initial prompt** for the coordinator, for example *"Add a CSV export of
+   the orders, with tests"*.
 
-Da qui lavori nella tab del coordinatore. Lui delega agli esperti con dei messaggi e loro gli
-rispondono. Puoi anche scrivere direttamente nella tab di un esperto. Sulla card del concilio,
-**● aperta** indica le sessioni effettivamente in esecuzione.
+### 6. Start the council
 
-### 7. Termina e riprendi
+Click **▶ Start**:
 
-- **■** sulla card termina tutte le sessioni aperte del concilio. Le conversazioni restano salvate.
-  Nella conferma, la casella **«Chiudi anche le finestre/tab del terminale»** decide se chiudere
-  anche le tab. Se non la spunti, al posto di Claude resta il prompt di PowerShell nella cartella di
-  lavoro. L'app ricorda l'ultima scelta.
-- Per un solo membro, usa il tasto destro sul suo nome nella card e scegli **Termina la sessione**.
-- Puoi anche chiudere le tab a mano o scrivere `/exit`.
-- **⟲ Riprendi** riapre l'ultima conversazione di ogni membro.
-- Un clic su un singolo membro della card riapre solo la sua sessione.
-- **▶ Avvia** invece inizia conversazioni nuove.
+- a Windows Terminal window opens with one tab per member;
+- the coordinator starts last, once the others can be reached, and gets the initial prompt;
+- the first time a working folder is used, each tab asks whether you trust the folder: confirm.
 
-## Com'è fatto un esperto
+From then on you work in the coordinator's tab. It delegates to the experts with messages and they
+answer it. You can also write directly in an expert's tab. On the council card, **● running** marks
+the sessions that are actually running.
+
+In the image at the top of this page, `LEAD` and `DEV-BE` of the SHOP council are running. While
+sessions are running **Start** stays disabled: stop them first with **■**, or use **Resume** to
+reopen just the closed members.
+
+### 7. Stop and resume
+
+- **■** on the card stops all the council's running sessions. The conversations stay saved. In the
+  confirmation, **Also close the terminal windows/tabs** decides whether the tabs close too. If you
+  untick it, a PowerShell prompt in the working folder takes Claude's place. The app remembers your
+  last choice.
+- For a single member, right-click its name on the card and choose **Stop the session**.
+- You can also close the tabs yourself or type `/exit`.
+- **⟲ Resume** reopens each member's last conversation.
+- Clicking a single member on the card reopens just its session.
+- **▶ Start**, instead, begins new conversations.
+
+![Stop confirmation with the option to also close the terminal](docs/images/stop.png)
+
+## What an expert looks like
 
 ```
 DEV-BE\
-├── CLAUDE.md                    istruzioni dell'esperto (obbligatorio)
-├── expert.json                  impostazioni condivisibili (vedi sotto)
+├── CLAUDE.md                    the expert's instructions (required)
+├── expert.json                  shareable settings (see below)
 └── .claude\
-    ├── skills\<nome>\SKILL.md   skill dell'esperto (facoltative)
-    └── settings.json            permessi dell'esperto (facoltativo)
+    ├── skills\<name>\SKILL.md   the expert's skills (optional)
+    └── settings.json            the expert's permissions (optional)
 ```
 
 ```json
 {
   "name": "LEAD",
-  "description": "Coordinatore: pianifica, delega agli esperti e sintetizza i risultati",
+  "description": "Coordinator: plans, delegates to the experts and summarizes the results",
   "color": "#D97757",
   "model": "opus",
   "effort": "high",
@@ -124,100 +150,119 @@ DEV-BE\
 }
 ```
 
-- `model` e `effort` sono facoltativi.
-- La `description` viene presentata agli altri membri del concilio, quindi conviene scriverla bene.
-- I **preferiti** (♥) non finiscono in `expert.json`, perché sono una scelta personale.
+- `model` and `effort` are optional.
+- The `description` is shown to the other council members, so it's worth writing it well.
+- **Favorites** (♥) are not written to `expert.json`: they're a personal choice.
 
-Le sessioni non partono nella cartella dell'esperto: partono nella cartella di lavoro del
-concilio. `CLAUDE.md`, skill e `settings.json` dell'esperto vengono caricati dalla sua cartella.
-Così le cartelle degli esperti restano pura configurazione e gli agenti non ci scrivono dentro.
+Sessions don't start in the expert's folder: they start in the council's working folder. The
+expert's `CLAUDE.md`, skills and `settings.json` are loaded from its own folder. That keeps expert
+folders pure configuration: agents don't write into them.
 
-## Condividere gli esperti con il team
+## Sharing experts with your team
 
-1. Metti le cartelle degli esperti in un repository git aziendale. Aggiungi un `.gitignore` per i
-   file personali che Claude Code crea nelle cartelle:
+1. Put the expert folders in a company git repository. Add a `.gitignore` for the personal files
+   Claude Code creates in them:
    ```
    **/.claude/settings.local.json
    **/CLAUDE.local.md
    ```
-2. Un collega clona il repository e usa **Importa esperti…**.
-3. Dopo un `git pull`, premi **Aggiorna** nella scheda Esperti: l'app rilegge `expert.json`,
-   `CLAUDE.md` e skill.
+2. A colleague clones the repository and uses **Import experts…**.
+3. After a `git pull`, click **Refresh** in the Experts tab: the app re-reads `expert.json`,
+   `CLAUDE.md` and skills.
 
-L'app riscrive l'`expert.json` solo degli esperti che hai modificato tu, quindi non sovrascrive
-gli aggiornamenti arrivati da git. Il flag coordinatore del collega viene preso solo all'import,
-e solo se tu non hai ancora un coordinatore.
+The app rewrites `expert.json` only for the experts you edited, so it never overwrites updates that
+came from git. A colleague's coordinator flag is honored only at import, and only if you don't have
+a coordinator yet.
 
-## Come comunicano le sessioni
+## How sessions communicate
 
-L'app non fa da intermediario: usa la **messaggistica nativa tra sessioni** di Claude Code (vedi
-la [documentazione](https://code.claude.com/docs/en/cross-session-messaging)).
+The app doesn't relay anything: it uses Claude Code's **native cross-session messaging** (see the
+[documentation](https://code.claude.com/docs/en/cross-session-messaging)).
 
-- Ogni sessione si chiama `CONCILIO.ESPERTO`, per esempio `SHOP.DEV-BE`: è l'indirizzo che gli
-  altri membri usano. Nella tab, `/peers` mostra chi è online.
-- Nei concili con più membri, ogni sessione riceve un **protocollo** generato dall'app. Il
-  protocollo dice chi è il membro, chi sono gli altri, chi coordina, il formato dei messaggi
-  (`[TASK-n] richiesta|risposta|domanda|stato: …`) e qual è la cartella condivisa per i file
-  lunghi.
-- Le **istruzioni aggiuntive** del concilio vengono aggiunte in coda al protocollo.
+- Each session is named `COUNCIL.EXPERT`, for example `SHOP.DEV-BE`: that's the address the other
+  members use. In a tab, `/peers` shows who's online.
+- In councils with more than one member, each session gets a **protocol** generated by the app: who
+  the member is, who the others are, who coordinates, the message format
+  (`[TASK-n] request|response|question|status: …`) and the shared folder for long files.
+- The council's **additional instructions** are appended to the protocol.
 
-## Dove salva i dati
+## Where data is stored
 
-| Cosa | Dove |
+| What | Where |
 |---|---|
-| Esperti, concili, preferiti, sessioni da riprendere | `%LOCALAPPDATA%\ClaudeCouncilManager\claudecouncil.db` (SQLite) |
-| Protocolli generati e cartella condivisa di ogni concilio | `%LOCALAPPDATA%\ClaudeCouncilManager\runtime\<CONCILIO>\` |
-| Conversazioni | gestite da Claude Code in `%USERPROFILE%\.claude\projects\` |
+| Experts, councils, favorites, sessions to resume | `%LOCALAPPDATA%\ClaudeCouncilManager\claudecouncil.db` (SQLite) |
+| Each council's generated protocols and shared folder | `%LOCALAPPDATA%\ClaudeCouncilManager\runtime\<COUNCIL>\` |
+| Conversations | kept by Claude Code in `%USERPROFILE%\.claude\projects\` |
 
-Le versioni precedenti si chiamavano *ClaudeCouncil* e salvavano i dati in
-`%LOCALAPPDATA%\ClaudeCouncil`. Al primo avvio la nuova versione li copia nella nuova cartella. La
-vecchia cartella resta come backup e la puoi cancellare.
+Earlier versions were called *ClaudeCouncil* and stored their data in `%LOCALAPPDATA%\ClaudeCouncil`.
+On first start the new version copies it to the new folder. The old folder stays as a backup that
+you can delete.
 
-## Impostazioni
+## Settings
 
-Nella scheda **Impostazioni** scegli dove si aprono le sessioni. Ogni sessione gira sempre in
-PowerShell 7.
+In the **Settings** tab:
 
-- **Windows Terminal** (predefinito): una finestra per concilio, una tab per membro con il nome e il
-  colore dell'esperto.
-- **Finestra PowerShell**: una finestra separata per ogni membro.
-- **Comando personalizzato**: un altro terminale. Indichi il programma e gli argomenti, con i
-  segnaposto `{pwsh} {pwshArgs} {workdir} {title} {council} {expert} {color}`. Gli argomenti
-  devono contenere `"{pwsh}" {pwshArgs}`, che avviano la sessione. Esempio per WezTerm:
-  programma `wezterm`, argomenti `start --cwd "{workdir}" -- "{pwsh}" {pwshArgs}`.
+- **Claude Code** shows which `claude.exe` will be used and its version. It's usually found
+  automatically, on PATH or in `%USERPROFILE%\.local\bin`; otherwise set the path yourself. Click
+  **Recheck** after installing or updating it.
+- **Session launch** sets where sessions open. Every session always runs in PowerShell 7.
+  - **Windows Terminal** (default): one window per council, one tab per member with the expert's
+    name and color.
+  - **PowerShell window**: a separate window for each member.
+  - **Custom command**: another terminal. You set the program and its arguments, with the
+    placeholders `{pwsh} {pwshArgs} {workdir} {title} {council} {expert} {color}`. The arguments
+    must contain `"{pwsh}" {pwshArgs}`, which start the session. Example for WezTerm: program
+    `wezterm`, arguments `start --cwd "{workdir}" -- "{pwsh}" {pwshArgs}`.
+- **PowerShell** is detected automatically: the app picks the newest stable installed version. You
+  can also set the path of `pwsh.exe`.
 
-PowerShell viene rilevato da solo: l'app sceglie la versione stabile più recente installata. In
-alternativa puoi indicare il percorso di `pwsh.exe`.
+![Settings tab: Claude Code, session launch and PowerShell](docs/images/settings.png)
 
-Quando esci da `claude` con `/exit`, la tab o la finestra si chiude. Se `claude` si chiude con un
-errore, la tab resta aperta sul prompt di PowerShell, così puoi leggere il messaggio.
+When you leave `claude` with `/exit`, its tab or window closes. If `claude` exits with an error, the
+tab stays open at the PowerShell prompt so you can read the message.
 
-## Area di notifica
+## Notification area
 
-- Se riduci a icona la finestra, l'app va nell'area di notifica.
-- Un clic sull'icona la riapre; dal menu del tasto destro ci sono **Apri** ed **Esci**.
-- La **X** della finestra chiude l'app.
+- Minimizing the window sends the app to the notification area.
+- Clicking the icon brings it back; its right-click menu has **Open** and **Exit**.
+- The window's **X** closes the app.
 
-## Problemi comuni
+## Troubleshooting
 
-- **«Il concilio non può essere avviato»**: il messaggio dice cosa manca. Di solito è la cartella
-  di lavoro, il coordinatore, o una cartella esperto che non esiste più.
-- **I messaggi tra sessioni non arrivano o restano in attesa**: tutti i membri devono usare la
-  stessa modalità di permessi. Se una sessione salta le conferme e l'altra no, Claude Code trattiene
-  i messaggi finché non li approvi.
-- **Hai chiuso una tab per errore**: clicca il membro sulla card del concilio. Riprende la sua
-  conversazione.
-- **«PowerShell 7 non trovato» o «Windows Terminal non trovato»**: installa quello che manca,
-  oppure cambia modalità o percorso nelle **Impostazioni**.
-- **Non succede niente premendo «Avvia»**: controlla che `claude` funzioni in un terminale e che la
-  versione sia almeno 2.1.234.
+- **"Councils can be created and edited, but not started"**: Claude Code is not installed, is too
+  old (`claude update`) or is only the npm version (`claude install`). Fix it and click **Recheck**.
+- **"Council … can't be started"**: the message says what's missing, usually the working folder, the
+  coordinator, or an expert folder that no longer exists.
+- **Messages between sessions don't arrive or are held**: all members must use the same permission
+  mode. If one session skips confirmations and the other doesn't, Claude Code holds the messages
+  until you approve them.
+- **You closed a tab by mistake**: click the member on the council card. It resumes its
+  conversation.
+- **"PowerShell 7 not found" or "Windows Terminal not found"**: install what's missing, or change the
+  launch mode or path in **Settings**.
+- **Nothing happens when you click Start**: check that `claude` works in a terminal and that its
+  version is at least 2.1.234.
 
-## Sviluppo
+## Development
 
-L'architettura e le note per chi sviluppa sono in [`CLAUDE.md`](CLAUDE.md).
+Architecture and developer notes are in [`CLAUDE.md`](CLAUDE.md).
 
 ```powershell
 dotnet build
-dotnet tool restore                                   # dotnet-ef locale (dotnet-tools.json)
-dotnet ef migrations add <Nome> --output-dir Data/Migrations
+dotnet tool restore                                   # local dotnet-ef (dotnet-tools.json)
+dotnet ef migrations add <Name> --output-dir Data/Migrations
 ```
+
+### Building the installer
+
+Requires [Inno Setup](https://jrsoftware.org/isinfo.php) 5 or 6.
+
+```powershell
+dotnet publish ClaudeCouncilManager.csproj -c Release -p:PublishProfile=FolderProfile
+& "C:\Program Files (x86)\Inno Setup 5\ISCC.exe" Installer.iss
+```
+
+- `dotnet publish` produces a self-contained single-file executable in
+  `bin\Release\net10.0-windows\publish\win-x64\`: the target machine doesn't need .NET installed.
+- `ISCC` produces `dist\ClaudeCouncilManager-Setup-<version>.exe`. The `dist` folder is ignored by git.
+- The version comes from `<Version>` in the `.csproj`.

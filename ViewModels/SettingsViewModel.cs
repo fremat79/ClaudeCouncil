@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using ClaudeCouncilManager.Models;
 using ClaudeCouncilManager.Services;
@@ -6,10 +7,15 @@ using Microsoft.Win32;
 
 namespace ClaudeCouncilManager.ViewModels;
 
-/// <summary>The «Impostazioni» tab: how sessions are opened and which PowerShell runs them.</summary>
+/// <summary>
+/// The Settings tab: how sessions are opened, which PowerShell runs them, and whether Claude
+/// Code is installed (without it councils can be configured but not launched).
+/// </summary>
 public sealed class SettingsViewModel : ObservableObject
 {
     private readonly Action _changed;
+    private ClaudeStatus? _claude; // null while the first check runs
+    private int _claudeCheck;
 
     public SettingsViewModel(AppSettings model, Action changed)
     {
@@ -17,9 +23,78 @@ public sealed class SettingsViewModel : ObservableObject
         _changed = changed;
         BrowsePowerShellCommand = new RelayCommand(_ => BrowsePowerShell());
         AutoDetectPowerShellCommand = new RelayCommand(_ => PowerShellPath = "", _ => !string.IsNullOrWhiteSpace(PowerShellPath));
+        RecheckClaudeCommand = new RelayCommand(async _ => await RecheckClaudeAsync());
+        BrowseClaudeCommand = new RelayCommand(_ => BrowseClaude());
+        AutoDetectClaudeCommand = new RelayCommand(_ => ClaudePath = "", _ => !string.IsNullOrWhiteSpace(ClaudePath));
     }
 
     public AppSettings Model { get; }
+
+    // ---- Claude Code -------------------------------------------------------------------------
+
+    /// <summary>Councils can be launched only when this is true (also false while checking).</summary>
+    public bool IsClaudeUsable => _claude?.IsUsable == true;
+
+    /// <summary>Why councils can't be launched, or null (also null while the check is running).</summary>
+    public string? ClaudeProblem => _claude?.Problem;
+
+    public string ClaudeInfo => _claude switch
+    {
+        null => "Checking Claude Code…",
+        { IsUsable: true } c => c.Description + (string.IsNullOrWhiteSpace(Model.ClaudePath)
+            ? "  (detected automatically)"
+            : "  (set manually)"),
+        { } c => c.Problem!,
+    };
+
+    public string ClaudeRequirement =>
+        $"Requires Claude Code {ClaudeLocator.Minimum} or later, native install (claude.exe). "
+        + "Without it, experts and councils can be created and edited but not started.";
+
+    /// <summary>The verified claude.exe, or null.</summary>
+    public string? ClaudeExecutable => IsClaudeUsable ? _claude!.Path : null;
+
+    /// <summary>Explicit claude.exe; empty = found automatically.</summary>
+    public string ClaudePath
+    {
+        get => Model.ClaudePath ?? "";
+        set
+        {
+            var v = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            if (v == Model.ClaudePath) return;
+            Model.ClaudePath = v;
+            OnPropertyChanged();
+            _changed();
+            _ = RecheckClaudeAsync();
+        }
+    }
+
+    public ICommand RecheckClaudeCommand { get; }
+
+    public ICommand BrowseClaudeCommand { get; }
+
+    public ICommand AutoDetectClaudeCommand { get; }
+
+    /// <summary>Looks for claude.exe and reads its version (off the UI thread); the last check wins.</summary>
+    public async Task RecheckClaudeAsync()
+    {
+        var check = ++_claudeCheck;
+        var path = Model.ClaudePath;
+        var status = await Task.Run(() => ClaudeLocator.Check(path));
+        if (check != _claudeCheck) return;
+        _claude = status;
+        foreach (var p in new[] { nameof(IsClaudeUsable), nameof(ClaudeProblem), nameof(ClaudeInfo), nameof(ClaudeExecutable) })
+            OnPropertyChanged(p);
+        CommandManager.InvalidateRequerySuggested(); // launch buttons depend on it
+    }
+
+    private void BrowseClaude()
+    {
+        var dlg = new OpenFileDialog { Title = "Choose claude.exe (Claude Code)", Filter = "Claude Code|claude.exe|Programs|*.exe" };
+        if (dlg.ShowDialog() == true) ClaudePath = dlg.FileName;
+    }
+
+    // ---- Session host and PowerShell ---------------------------------------------------------
 
     // One bool per option so each RadioButton can bind two-way without a converter.
     public bool UseWindowsTerminal
@@ -62,8 +137,8 @@ public sealed class SettingsViewModel : ObservableObject
             {
                 var pwsh = PowerShellLocator.Resolve(Model.PowerShellPath);
                 return pwsh.Description + (string.IsNullOrWhiteSpace(Model.PowerShellPath)
-                    ? "  (versione più recente installata, rilevata automaticamente)"
-                    : "  (indicato manualmente)");
+                    ? "  (newest installed version, detected automatically)"
+                    : "  (set manually)");
             }
             catch (InvalidOperationException ex)
             {
@@ -111,9 +186,9 @@ public sealed class SettingsViewModel : ObservableObject
             }
             if (Model.SessionHost != SessionHost.Custom) return null;
             if (string.IsNullOrWhiteSpace(Model.CustomProgram))
-                return "Comando personalizzato: indica il programma da avviare.";
+                return "Custom command: set the program to start.";
             if (!Model.CustomArguments.Contains("{pwshArgs}"))
-                return "Comando personalizzato: gli argomenti devono contenere {pwsh} {pwshArgs}, che avviano la sessione di Claude in PowerShell.";
+                return "Custom command: the arguments must contain {pwsh} {pwshArgs}, which start the Claude session in PowerShell.";
             return null;
         }
     }
@@ -137,7 +212,7 @@ public sealed class SettingsViewModel : ObservableObject
 
     private void BrowsePowerShell()
     {
-        var dlg = new OpenFileDialog { Title = "Scegli pwsh.exe (PowerShell 7)", Filter = "PowerShell|pwsh.exe|Programmi|*.exe" };
+        var dlg = new OpenFileDialog { Title = "Choose pwsh.exe (PowerShell 7)", Filter = "PowerShell|pwsh.exe|Programs|*.exe" };
         if (dlg.ShowDialog() == true) PowerShellPath = dlg.FileName;
     }
 

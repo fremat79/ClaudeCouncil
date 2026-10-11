@@ -22,6 +22,9 @@ namespace ClaudeCouncilManager.Data.Migrations
                     b.Property<int>("Id")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ClaudePath")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("CloseTerminalOnTerminate")
                         .HasColumnType("INTEGER");
 

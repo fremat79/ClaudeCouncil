@@ -55,6 +55,7 @@ public sealed class MainViewModel : ObservableObject
             _db.Settings.Add(settings);
         }
         Settings = new SettingsViewModel(settings, Changed);
+        _ = Settings.RecheckClaudeAsync(); // until it answers, launching stays disabled
         _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _saveTimer.Tick += (_, _) => SaveNow();
 
@@ -102,11 +103,11 @@ public sealed class MainViewModel : ObservableObject
         ResumeCouncilCommand = new RelayCommand(
             async p => await RunAsync(() => OpenCouncilAsync((CouncilViewModel)p!, resume: true)),
             // Still useful while some members run: it reopens the ones that are closed.
-            p => p is CouncilViewModel { IsLaunching: false, CanResume: true, AllSessionsRunning: false });
+            p => Settings.IsClaudeUsable && p is CouncilViewModel { IsLaunching: false, CanResume: true, AllSessionsRunning: false });
         LaunchCouncilCommand = new RelayCommand(
             async p => await RunAsync(() => OpenCouncilAsync((CouncilViewModel)p!, resume: false)),
             // New conversations only from a stopped council: with sessions open, ■ them first.
-            p => p is CouncilViewModel { IsLaunching: false, HasRunningSessions: false });
+            p => Settings.IsClaudeUsable && p is CouncilViewModel { IsLaunching: false, HasRunningSessions: false });
         TerminateCouncilCommand = new RelayCommand(
             async p => await RunAsync(() => TerminateAsync((CouncilViewModel)p!, onlyExpert: null)),
             p => p is CouncilViewModel { IsLaunching: false, HasRunningSessions: true });
@@ -114,7 +115,7 @@ public sealed class MainViewModel : ObservableObject
             async p => await RunAsync(() => TerminateAsync(((MemberChip)p!).Council, ((MemberChip)p!).Expert)),
             p => p is MemberChip { IsRunning: true });
         LaunchMemberCommand = new RelayCommand(
-            async p => await RunAsync(() => LaunchSingleMemberAsync((MemberChip)p!)), p => p is MemberChip);
+            async p => await RunAsync(() => LaunchSingleMemberAsync((MemberChip)p!)), p => Settings.IsClaudeUsable && p is MemberChip);
     }
 
     public ObservableCollection<ExpertViewModel> Experts { get; } = new();
@@ -177,7 +178,7 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Why "Nuovo concilio" is disabled, or null when it is enabled: creating a council needs the
+    /// Why "New council" is disabled, or null when it is enabled: creating a council needs the
     /// coordinator expert and at least one other expert.
     /// </summary>
     public string? NewCouncilBlockedReason
@@ -189,14 +190,14 @@ public sealed class MainViewModel : ObservableObject
             return (hasCoordinator, hasOthers) switch
             {
                 (true, true) => null,
-                (false, false) => "Per creare un concilio servono un esperto coordinatore e almeno un altro esperto: definiscili nella scheda «Esperti».",
-                (false, true) => "Manca il coordinatore: spunta «Coordinatore dei concili» su un esperto nella scheda «Esperti».",
-                (true, false) => "Manca almeno un esperto oltre al coordinatore: aggiungilo nella scheda «Esperti».",
+                (false, false) => "A council needs a coordinator expert and at least one other expert: set them up in the Experts tab.",
+                (false, true) => "There is no coordinator: tick 'Council coordinator' on an expert in the Experts tab.",
+                (true, false) => "Add at least one expert besides the coordinator in the Experts tab.",
             };
         }
     }
 
-    public string CouncilsEmptyHint => NewCouncilBlockedReason ?? "Crea un concilio con «Nuovo concilio».";
+    public string CouncilsEmptyHint => NewCouncilBlockedReason ?? "Create a council with New council.";
 
     public static IReadOnlyList<string> ModelOptions { get; } = new[] { "", "opus", "sonnet", "haiku", "fable" };
 
@@ -245,7 +246,7 @@ public sealed class MainViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MessageBox.Show("Impossibile salvare nel database:\n\n" + (ex.InnerException ?? ex).Message, AppTitle,
+            MessageBox.Show("Can't save to the database:\n\n" + (ex.InnerException ?? ex).Message, AppTitle,
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -264,7 +265,7 @@ public sealed class MainViewModel : ObservableObject
         }
         _dirtyManifests.Clear();
         if (failed.Count > 0)
-            MessageBox.Show("Non è stato possibile aggiornare expert.json di:\n\n" + string.Join("\n", failed), AppTitle,
+            MessageBox.Show("Couldn't update expert.json for:\n\n" + string.Join("\n", failed), AppTitle,
                 MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
@@ -272,7 +273,7 @@ public sealed class MainViewModel : ObservableObject
 
     private void AddExpert()
     {
-        var dlg = new OpenFolderDialog { Title = "Scegli la cartella dell'esperto (con CLAUDE.md ed eventuali skill)" };
+        var dlg = new OpenFolderDialog { Title = "Choose the expert's folder (with its CLAUDE.md and any skills)" };
         if (dlg.ShowDialog() != true) return;
         var folder = Path.TrimEndingDirectorySeparator(dlg.FolderName);
 
@@ -281,7 +282,7 @@ public sealed class MainViewModel : ObservableObject
         if (existing is not null)
         {
             SelectedExpert = existing;
-            Info($"Questa cartella è già l'esperto {existing.Name}.");
+            Info($"This folder is already the expert {existing.Name}.");
             return;
         }
 
@@ -297,7 +298,7 @@ public sealed class MainViewModel : ObservableObject
         Changed();
 
         if (!vm.HasClaudeMd && Confirm(
-                $"La cartella non contiene un CLAUDE.md.\n\nVuoi crearne uno di partenza per {vm.Name}?"))
+                $"The folder has no CLAUDE.md.\n\nCreate a starter one for {vm.Name}?"))
             CreateClaudeMd(vm);
     }
 
@@ -305,10 +306,10 @@ public sealed class MainViewModel : ObservableObject
     {
         if (expert is null) return;
         var usedBy = Councils.Where(c => c.Model.HasMember(expert.Id)).Select(c => c.Name).ToList();
-        var msg = $"Rimuovere l'esperto {expert.Name} dalla configurazione?\n\nLa cartella non viene cancellata.";
-        if (usedBy.Count > 0) msg += "\n\nVerrà tolto anche dai concili: " + string.Join(", ", usedBy);
+        var msg = $"Remove the expert {expert.Name} from the app?\n\nIts folder is not deleted.";
+        if (usedBy.Count > 0) msg += "\n\nIt will also be removed from these councils: " + string.Join(", ", usedBy);
         if (expert.IsCoordinator)
-            msg += "\n\nÈ il coordinatore: i concili con due o più esperti non potranno partire finché non ne segni un altro.";
+            msg += "\n\nIt is the coordinator: councils with two or more experts can't start until you mark another one.";
         if (!Confirm(msg)) return;
 
         foreach (var c in Councils) c.Model.RemoveMember(expert.Id);
@@ -326,14 +327,14 @@ public sealed class MainViewModel : ObservableObject
     /// </summary>
     private void ImportExperts()
     {
-        var dlg = new OpenFolderDialog { Title = "Cartella con gli esperti da importare" };
+        var dlg = new OpenFolderDialog { Title = "Folder with the experts to import" };
         if (dlg.ShowDialog() != true) return;
 
         var candidates = ExpertImporter.Scan(dlg.FolderName);
         if (candidates.Count == 0)
         {
-            Info("Nessun esperto trovato in:\n\n" + dlg.FolderName
-                 + "\n\nUn esperto è una cartella (o una sua sottocartella diretta) con un CLAUDE.md o un expert.json.");
+            Info("No experts found in:\n\n" + dlg.FolderName
+                 + "\n\nAn expert is a folder (or one of its direct subfolders) with a CLAUDE.md or an expert.json.");
             return;
         }
 
@@ -360,8 +361,8 @@ public sealed class MainViewModel : ObservableObject
         SelectedExpert = imported[0];
         Changed();
         SaveNow();
-        Info($"Importati {imported.Count} esperti: {string.Join(", ", imported.Select(e => e.Name))}."
-             + (newCoordinator is null ? "" : $"\n\nCoordinatore: {newCoordinator}."));
+        Info($"Imported {imported.Count} experts: {string.Join(", ", imported.Select(e => e.Name))}."
+             + (newCoordinator is null ? "" : $"\n\nCoordinator: {newCoordinator}."));
     }
 
     /// <summary>Default name for a folder: the one in its expert.json if valid, else the folder name; made unique.</summary>
@@ -392,7 +393,7 @@ public sealed class MainViewModel : ObservableObject
 
     private void ChangeExpertFolder(ExpertViewModel expert)
     {
-        var dlg = new OpenFolderDialog { Title = $"Nuova cartella per {expert.Name}" };
+        var dlg = new OpenFolderDialog { Title = $"New folder for {expert.Name}" };
         if (Directory.Exists(expert.Folder)) dlg.InitialDirectory = expert.Folder;
         if (dlg.ShowDialog() != true) return;
         var folder = Path.TrimEndingDirectorySeparator(dlg.FolderName);
@@ -429,7 +430,7 @@ public sealed class MainViewModel : ObservableObject
     private static void OpenExpertFolder(ExpertViewModel expert)
     {
         if (!Directory.Exists(expert.Folder))
-            throw new DirectoryNotFoundException("Questa cartella non esiste più:\n\n" + expert.Folder);
+            throw new DirectoryNotFoundException("This folder no longer exists:\n\n" + expert.Folder);
         Process.Start(new ProcessStartInfo { FileName = expert.Folder, UseShellExecute = true });
     }
 
@@ -459,14 +460,14 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>A council needs its working folder from the start; its name defaults to the folder's.</summary>
     private void AddCouncil()
     {
-        var dlg = new OpenFolderDialog { Title = "Cartella di lavoro del nuovo concilio (dove partono tutte le sessioni)" };
+        var dlg = new OpenFolderDialog { Title = "Working folder of the new council (where all its sessions start)" };
         if (dlg.ShowDialog() != true) return;
         var folder = Path.TrimEndingDirectorySeparator(dlg.FolderName);
         var leaf = Path.GetFileName(folder);
 
         var council = new Council
         {
-            Name = Naming.Unique(string.IsNullOrEmpty(leaf) ? "CONCILIO" : Naming.Sanitize(leaf), Councils.Select(c => c.Name)),
+            Name = Naming.Unique(string.IsNullOrEmpty(leaf) ? "COUNCIL" : Naming.Sanitize(leaf), Councils.Select(c => c.Name)),
             WorkingFolder = folder,
         };
         _db.Councils.Add(council);
@@ -484,10 +485,10 @@ public sealed class MainViewModel : ObservableObject
     {
         if (council is null) return;
 
-        var msg = $"Eliminare il concilio {council.Name}?\n\nGli esperti e le loro cartelle non vengono toccati.";
+        var msg = $"Delete the council {council.Name}?\n\nThe experts and their folders are not touched.";
         var open = council.Chips.Where(c => c.IsRunning).Select(c => Naming.SessionName(council.Name, c.Expert.Name)).ToList();
         if (open.Count > 0)
-            msg += "\n\nQueste sessioni sono ancora aperte e non verranno chiuse:\n\n" + string.Join("\n", open);
+            msg += "\n\nThese sessions are still running and won't be stopped:\n\n" + string.Join("\n", open);
         if (!Confirm(msg)) return;
 
         var index = Councils.IndexOf(council);
@@ -506,13 +507,13 @@ public sealed class MainViewModel : ObservableObject
 
     private void ChangeWorkingFolder(CouncilViewModel council)
     {
-        var dlg = new OpenFolderDialog { Title = $"Cartella di lavoro di {council.Name}" };
+        var dlg = new OpenFolderDialog { Title = $"Working folder of {council.Name}" };
         if (Directory.Exists(council.WorkingFolder)) dlg.InitialDirectory = council.WorkingFolder;
         if (dlg.ShowDialog() != true) return;
         var folder = Path.TrimEndingDirectorySeparator(dlg.FolderName);
         if (string.Equals(folder, council.WorkingFolder, StringComparison.OrdinalIgnoreCase)) return;
         if (council.Model.Sessions.Count > 0 && !Confirm(
-                "Le sessioni già avviate sono legate alla cartella attuale: con la nuova cartella «Riprendi» non potrà riaprirle.\n\nCambiare cartella?"))
+                "The sessions already started belong to the current folder: with a new folder, Resume can't reopen them.\n\nChange the folder?"))
             return;
         council.SetWorkingFolder(folder);
     }
@@ -520,20 +521,20 @@ public sealed class MainViewModel : ObservableObject
     private static void OpenWorkingFolder(CouncilViewModel council)
     {
         if (!Directory.Exists(council.WorkingFolder))
-            throw new DirectoryNotFoundException("La cartella di lavoro non esiste:\n\n" + council.WorkingFolder);
+            throw new DirectoryNotFoundException("The working folder doesn't exist:\n\n" + council.WorkingFolder);
         Process.Start(new ProcessStartInfo { FileName = council.WorkingFolder, UseShellExecute = true });
     }
 
     /// <summary>
     /// Opens the council's sessions that aren't already running, from its working folder.
-    /// «Avvia» (<paramref name="resume"/> false) starts new conversations; a council started from
+    /// Start (<paramref name="resume"/> false) starts new conversations; a council started from
     /// scratch sends the initial prompt, filling in members whose tab was closed doesn't.
-    /// «Riprendi» reopens each member's last conversation with --resume (a member without one
+    /// Resume reopens each member's last conversation with --resume (a member without one
     /// starts a new conversation) and never sends the initial prompt.
     /// </summary>
     private async Task OpenCouncilAsync(CouncilViewModel council, bool resume)
     {
-        if (!IsLaunchable(council)) return;
+        if (!IsLaunchable(council) || !await IsClaudeReadyAsync()) return;
 
         council.IsLaunching = true;
         try
@@ -544,7 +545,7 @@ public sealed class MainViewModel : ObservableObject
             var toLaunch = members.Except(open).ToList();
             if (toLaunch.Count == 0)
             {
-                Info($"Le sessioni del concilio {council.Name} sono già tutte aperte.");
+                Info($"All the sessions of council {council.Name} are already running.");
                 return;
             }
 
@@ -553,15 +554,15 @@ public sealed class MainViewModel : ObservableObject
 
             var notes = new List<string>();
             if (open.Count > 0)
-                notes.Add("Sono già aperte e restano come sono:\n\n" + SessionList(council, open));
+                notes.Add("Already running, left as they are:\n\n" + SessionList(council, open));
             if (resume && resumable.Count < toLaunch.Count)
-                notes.Add("Non c'è una conversazione da riprendere, quindi ne inizia una nuova:\n\n"
+                notes.Add("No conversation to resume, so a new one starts:\n\n"
                           + SessionList(council, toLaunch.Where(m => !resumable.Contains(m))));
             if (fresh && council.CanResume)
-                notes.Add("Questo concilio ha già delle conversazioni: «Avvia» ne inizia di nuove "
-                          + "(le precedenti restano nella cronologia di Claude Code). Per continuare il lavoro usa «Riprendi».");
+                notes.Add("This council already has conversations: Start begins new ones "
+                          + "(the previous ones stay in Claude Code's history). To continue the work, use Resume.");
             if (notes.Count > 0 && !Confirm(string.Join("\n\n", notes)
-                    + (resume || fresh ? "\n\nContinuare?" : "\n\nAvviare solo le sessioni mancanti? Il prompt iniziale non viene reinviato.")))
+                    + (resume || fresh ? "\n\nContinue?" : "\n\nStart only the missing sessions? The initial prompt is not sent again.")))
                 return;
 
             // The coordinator, or the only expert of a single-expert council, gets the initial prompt.
@@ -590,12 +591,12 @@ public sealed class MainViewModel : ObservableObject
     private async Task LaunchSingleMemberAsync(MemberChip chip)
     {
         var council = chip.Council;
-        if (!IsLaunchable(council)) return;
+        if (!IsLaunchable(council) || !await IsClaudeReadyAsync()) return;
 
         var sessionName = Naming.SessionName(council.Name, chip.Expert.Name);
         if ((await RefreshRunningAsync(force: true)).Contains(sessionName))
         {
-            Info($"La sessione {sessionName} è già aperta.");
+            Info($"Session {sessionName} is already running.");
             return;
         }
         var resume = council.Model.SessionFor(chip.Expert.Id) is { } id && SessionHistory.Exists(id);
@@ -605,16 +606,28 @@ public sealed class MainViewModel : ObservableObject
         SaveNow();
     }
 
+    /// <summary>
+    /// Re-checks Claude Code just before launching (it may have been uninstalled or updated since
+    /// the last check); councils can be configured without it, but not launched.
+    /// </summary>
+    private async Task<bool> IsClaudeReadyAsync()
+    {
+        await Settings.RecheckClaudeAsync();
+        if (Settings.IsClaudeUsable) return true;
+        Info("Councils can't be started:\n\n" + Settings.ClaudeProblem);
+        return false;
+    }
+
     private bool IsLaunchable(CouncilViewModel council)
     {
         if (Settings.Error is { } settingsError)
         {
-            Info("Le impostazioni di avvio non sono valide (scheda «Impostazioni»):\n\n" + settingsError);
+            Info("The launch settings are not valid (Settings tab):\n\n" + settingsError);
             return false;
         }
         RefreshExperts(adoptManifests: false);
         if (council.Error is null) return true;
-        Info($"Il concilio {council.Name} non può essere avviato:\n\n{council.Error}");
+        Info($"Council {council.Name} can't be started:\n\n{council.Error}");
         return false;
     }
 
@@ -686,6 +699,7 @@ public sealed class MainViewModel : ObservableObject
         if (sharedDir is not null) addDirs.Add(sharedDir);
 
         SessionLauncher.Launch(new LaunchRequest(
+            ClaudePath: Settings.ClaudeExecutable!,
             CouncilName: council.Name,
             ExpertName: member.Name,
             TabTitle: multi && member == coordinator ? member.Name + " ★" : member.Name,
@@ -707,7 +721,7 @@ public sealed class MainViewModel : ObservableObject
     /// Ends the council's running sessions (every <c>COUNCIL.*</c> session, so also members since
     /// unticked), or just <paramref name="onlyExpert"/>'s. The stop file written first tells each
     /// session's script that the exit was requested, so its tab/window closes instead of waiting
-    /// on the error. Conversations stay saved and can be reopened with «Riprendi».
+    /// on the error. Conversations stay saved and can be reopened with Resume.
     /// </summary>
     private async Task TerminateAsync(CouncilViewModel council, ExpertViewModel? onlyExpert)
     {
@@ -719,7 +733,7 @@ public sealed class MainViewModel : ObservableObject
             .ToList();
         if (sessions.Count == 0)
         {
-            Info("Non ci sono sessioni aperte da terminare.");
+            Info("There are no running sessions to stop.");
             await RefreshRunningAsync(force: true);
             return;
         }
@@ -751,7 +765,7 @@ public sealed class MainViewModel : ObservableObject
         Revalidate();
         // Expert renames/recolors show up on council tiles.
         foreach (var c in Councils) c.NotifyMembership();
-        // Adding/removing experts or moving the coordinator flag can enable "Nuovo concilio".
+        // Adding/removing experts or moving the coordinator flag can enable "New council".
         OnPropertyChanged(nameof(NewCouncilBlockedReason));
         OnPropertyChanged(nameof(CouncilsEmptyHint));
         CommandManager.InvalidateRequerySuggested();
@@ -775,27 +789,27 @@ public sealed class MainViewModel : ObservableObject
     {
         foreach (var e in Experts)
         {
-            e.Error = !Naming.IsValid(e.Name) ? "Nome non valido: usa solo lettere, cifre, - e _ (max 40)."
+            e.Error = !Naming.IsValid(e.Name) ? "Invalid name: use only letters, digits, - and _ (max 40)."
                 : Experts.Count(o => string.Equals(o.Name, e.Name, StringComparison.OrdinalIgnoreCase)) > 1
-                    ? "Nome già usato da un altro esperto."
-                : !e.FolderExists ? "Cartella non trovata: " + e.Folder
+                    ? "Name already used by another expert."
+                : !e.FolderExists ? "Folder not found: " + e.Folder
                 : !string.IsNullOrEmpty(e.Effort) && !EffortOptions.Contains(e.Effort)
-                    ? "Effort non valido: usa " + string.Join(", ", EffortOptions.Skip(1)) + " oppure lascialo vuoto."
+                    ? "Invalid effort: use " + string.Join(", ", EffortOptions.Skip(1)) + " or leave it empty."
                 : null;
         }
 
         foreach (var c in Councils)
         {
             var members = c.Members;
-            c.Error = !Naming.IsValid(c.Name) ? "Nome non valido: usa solo lettere, cifre, - e _ (max 40)."
+            c.Error = !Naming.IsValid(c.Name) ? "Invalid name: use only letters, digits, - and _ (max 40)."
                 : Councils.Count(o => string.Equals(o.Name, c.Name, StringComparison.OrdinalIgnoreCase)) > 1
-                    ? "Nome già usato da un altro concilio."
-                : string.IsNullOrWhiteSpace(c.WorkingFolder) ? "Scegli la cartella di lavoro del concilio (dove partono tutte le sessioni)."
-                : !Directory.Exists(c.WorkingFolder) ? "Cartella di lavoro non trovata: " + c.WorkingFolder
-                : members.Count == 0 ? "Aggiungi almeno un esperto."
+                    ? "Name already used by another council."
+                : string.IsNullOrWhiteSpace(c.WorkingFolder) ? "Choose the council's working folder (where all its sessions start)."
+                : !Directory.Exists(c.WorkingFolder) ? "Working folder not found: " + c.WorkingFolder
+                : members.Count == 0 ? "Add at least one expert."
                 : members.Count > 1 && c.Coordinator is null
-                    ? "Con due o più esperti serve il coordinatore: segna un esperto come coordinatore nella scheda «Esperti»."
-                : members.FirstOrDefault(m => m.Error is not null) is { } bad ? $"Esperto {bad.Name}: {bad.Error}"
+                    ? "Two or more experts need the coordinator: mark an expert as coordinator in the Experts tab."
+                : members.FirstOrDefault(m => m.Error is not null) is { } bad ? $"Expert {bad.Name}: {bad.Error}"
                 : null;
         }
     }

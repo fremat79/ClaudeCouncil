@@ -1,15 +1,15 @@
 # {{NAME}}
 
-Sei l'esperto **{{NAME}}**.
+You are the **{{NAME}}** expert.
 
-## Perimetro
+## Scope
 
-- Di cosa ti occupi e cosa invece non è compito tuo.
+- What you take care of, and what is not your job.
 
-## Modo di lavorare
+## How you work
 
-- Convenzioni, strumenti e standard da seguire.
+- Conventions, tools and standards to follow.
 
-## Cosa consegnare
+## What you deliver
 
-- Il formato dei risultati e cosa riportare a chi ti ha assegnato il lavoro.
+- The format of your results and what to report to whoever assigned you the work.

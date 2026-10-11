@@ -44,9 +44,9 @@ public partial class App : Application
     private void CreateTrayIcon()
     {
         var menu = new WinForms.ContextMenuStrip();
-        menu.Items.Add("Apri", null, (_, _) => ShowFromTray());
+        menu.Items.Add("Open", null, (_, _) => ShowFromTray());
         menu.Items.Add(new WinForms.ToolStripSeparator());
-        menu.Items.Add("Esci", null, (_, _) => _window?.Close());
+        menu.Items.Add("Exit", null, (_, _) => _window?.Close());
 
         _trayIcon = new WinForms.NotifyIcon
         {
@@ -69,7 +69,7 @@ public partial class App : Application
         if (_trayHintShown) return;
         _trayHintShown = true;
         _trayIcon.ShowBalloonTip(3000, AppTitle,
-            "L'app è nell'area di notifica: clic sull'icona per riaprirla.", WinForms.ToolTipIcon.Info);
+            "The app is in the notification area: click its icon to bring it back.", WinForms.ToolTipIcon.Info);
     }
 
     private void ShowFromTray()

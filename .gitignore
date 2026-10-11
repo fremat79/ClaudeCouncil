@@ -426,3 +426,8 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+
+# Installer output (Installer.iss)
+/dist
+# The folder publish profile has no secrets and is needed to build the installer (README).
+!Properties/PublishProfiles/FolderProfile.pubxml

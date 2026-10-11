@@ -3,7 +3,7 @@ using System;
 namespace ClaudeCouncilManager.Models;
 
 /// <summary>
-/// The last Claude Code session started for one member of a council, so «Riprendi» can reopen
+/// The last Claude Code session started for one member of a council, so Resume can reopen
 /// that conversation with <c>claude --resume</c> from the council's working folder.
 /// </summary>
 public sealed class CouncilSession

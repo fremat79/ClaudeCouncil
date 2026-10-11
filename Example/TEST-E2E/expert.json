@@ -1,6 +1,6 @@
 {
   "name": "TEST-E2E",
-  "description": "Test end-to-end: scenari utente completi tra frontend e backend",
+  "description": "End-to-end tests: complete user scenarios across frontend and backend",
   "color": "#D9578F",
   "isCoordinator": false
 }

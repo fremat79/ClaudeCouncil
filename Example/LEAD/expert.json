@@ -1,6 +1,6 @@
 {
   "name": "LEAD",
-  "description": "Coordinatore: pianifica, delega agli esperti e sintetizza i risultati",
+  "description": "Coordinator: plans, delegates to the experts and summarizes the results",
   "color": "#D97757",
   "isCoordinator": true
 }

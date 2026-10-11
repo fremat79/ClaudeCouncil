@@ -8,7 +8,7 @@ public static class Templates
     public static string Load(string fileName)
     {
         using var stream = typeof(Templates).Assembly.GetManifestResourceStream("Templates." + fileName)
-            ?? throw new FileNotFoundException("Template mancante: " + fileName);
+            ?? throw new FileNotFoundException("Missing template: " + fileName);
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
     }

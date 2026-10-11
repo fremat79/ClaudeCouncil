@@ -1,6 +1,6 @@
 {
   "name": "DEV-BE",
-  "description": "Sviluppo backend: API, logica di business, dati",
+  "description": "Backend development: APIs, business logic, data",
   "color": "#4F8FD9",
   "isCoordinator": false
 }

@@ -6,7 +6,7 @@
     <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     <conv:NullToVisibilityConverter x:Key="NullToVis"/>
 
-    <!-- Section switcher in the top bar (Concili / Esperti) -->
+    <!-- Section switcher in the top bar (Councils / Experts / Settings) -->
     <Style x:Key="NavTabStyle" TargetType="RadioButton">
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Margin" Value="0,0,4,0"/>
@@ -130,12 +130,12 @@
         </Setter>
     </Style>
 
-    <!-- Quick-pick chips under the model / effort boxes; "" is shown as "predefinito" -->
+    <!-- Quick-pick chips under the model / effort boxes; "" is shown as "default" -->
     <Style x:Key="OptionChipStyle" TargetType="Button" BasedOn="{StaticResource ChipButtonStyle}">
         <Setter Property="Content" Value="{Binding}"/>
         <Style.Triggers>
             <DataTrigger Binding="{Binding}" Value="">
-                <Setter Property="Content" Value="predefinito"/>
+                <Setter Property="Content" Value="default"/>
             </DataTrigger>
         </Style.Triggers>
     </Style>
@@ -194,7 +194,7 @@
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="VerticalAlignment" Value="Top"/>
         <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
-        <Setter Property="ToolTip" Value="Aggiungi ai preferiti"/>
+        <Setter Property="ToolTip" Value="Add to favorites"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToggleButton">
@@ -210,7 +210,7 @@
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="glyph" Property="Text" Value="&#xEB52;"/>
                             <Setter Property="Foreground" Value="#E0457B"/>
-                            <Setter Property="ToolTip" Value="Rimuovi dai preferiti"/>
+                            <Setter Property="ToolTip" Value="Remove from favorites"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -218,7 +218,7 @@
         </Setter>
     </Style>
 
-    <!-- "Solo preferiti" filter switch in a tab header -->
+    <!-- "Favorites only" filter switch in a tab header -->
     <Style x:Key="FilterToggleStyle" TargetType="ToggleButton">
         <Setter Property="Padding" Value="12,6"/>
         <Setter Property="FontSize" Value="13"/>

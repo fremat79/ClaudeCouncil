@@ -13,6 +13,7 @@ namespace ClaudeCouncilManager.Services;
 /// Everything needed to start (or, with <see cref="Resume"/>, reopen) one interactive Claude Code
 /// session.
 /// </summary>
+/// <param name="ClaudePath">The claude.exe verified by ClaudeLocator.</param>
 /// <param name="WorkingDirectory">The council's working folder: the session starts there.</param>
 /// <param name="SessionId">Passed as <c>--session-id</c> for a new session, as <c>--resume</c> when resuming.</param>
 /// <param name="SettingsFile">The expert's own <c>.claude\settings.json</c>, if any (<c>--settings</c>).</param>
@@ -20,6 +21,7 @@ namespace ClaudeCouncilManager.Services;
 /// <param name="StopFile">Created by the app before it terminates the session: tells the script the
 /// exit was requested, so it closes quietly instead of keeping the error on screen.</param>
 public sealed record LaunchRequest(
+    string ClaudePath,
     string CouncilName,
     string ExpertName,
     string TabTitle,
@@ -56,8 +58,8 @@ public static partial class SessionLauncher
         var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(BuildScript(r)));
         if (encoded.Length > MaxEncodedLength)
             throw new InvalidOperationException(
-                "Il prompt iniziale è troppo lungo per la riga di comando. Accorcialo, oppure metti il testo "
-                + "in un file nella cartella condivisa e nel prompt indica di leggerlo.");
+                "The initial prompt is too long for the command line. Shorten it, or put the text in a file "
+                + "in the shared folder and ask to read it in the prompt.");
 
         var startDir = Path.TrimEndingDirectorySeparator(r.WorkingDirectory);
         // -NoExit: the script itself decides when to close (see BuildScript); otherwise the prompt stays.
@@ -90,7 +92,7 @@ public static partial class SessionLauncher
                 catch (Win32Exception ex)
                 {
                     throw new InvalidOperationException(
-                        $"Impossibile avviare il programma personalizzato «{settings.CustomProgram}»:\n\n{ex.Message}");
+                        $"Can't start the custom program '{settings.CustomProgram}':\n\n{ex.Message}");
                 }
                 break;
         }
@@ -123,8 +125,8 @@ public static partial class SessionLauncher
         catch (Win32Exception)
         {
             throw new InvalidOperationException(
-                "Windows Terminal non trovato. Installalo oppure, nelle Impostazioni, scegli di aprire le "
-                + "sessioni in finestre PowerShell.");
+                "Windows Terminal not found. Install it, or choose in Settings to open "
+                + "sessions in PowerShell windows.");
         }
     }
 
@@ -144,7 +146,7 @@ public static partial class SessionLauncher
 
     /// <summary>
     /// The PowerShell script run for the session (pwsh runs it with -NoExit). When claude ends:
-    /// stopped by «Termina», the stop file says "close" (exit 0: Windows Terminal closes the tab) or
+    /// stopped by Stop, the stop file says "close" (exit 0: Windows Terminal closes the tab) or
     /// "keep" (the shell stays at its prompt with a note); a normal exit (/exit) exits 0 and closes
     /// the tab or window; a failure leaves the shell at its prompt so the error can be read.
     /// Public for testing the quoting.
@@ -159,7 +161,8 @@ public static partial class SessionLauncher
         // The expert's CLAUDE.md sits in an --add-dir folder: Claude Code reads it only with this set.
         sb.Append("$env:CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD = '1'\n");
 
-        sb.Append("claude --name ").Append(PsLiteral(r.SessionName));
+        // The exact claude.exe ClaudeLocator checked, not whatever "claude" resolves to in the shell.
+        sb.Append("& ").Append(PsLiteral(r.ClaudePath)).Append(" --name ").Append(PsLiteral(r.SessionName));
         sb.Append(r.Resume ? " --resume " : " --session-id ").Append(PsLiteral(r.SessionId.ToString()));
         if (!string.IsNullOrWhiteSpace(r.Model)) sb.Append(" --model ").Append(PsLiteral(r.Model.Trim()));
         if (!string.IsNullOrWhiteSpace(r.Effort)) sb.Append(" --effort ").Append(PsLiteral(r.Effort.Trim()));
@@ -178,12 +181,12 @@ public static partial class SessionLauncher
         sb.Append("    Remove-Item -LiteralPath $stopFile -Force\n");
         sb.Append("    if ($mode -eq 'close') { exit 0 }\n");
         sb.Append("    Write-Host ''\n");
-        sb.Append("    Write-Host 'Sessione terminata da Claude Council Manager.' -ForegroundColor Yellow\n");
+        sb.Append("    Write-Host 'Session stopped by Claude Council Manager.' -ForegroundColor Yellow\n");
         sb.Append("} elseif ($code -eq 0) {\n");
         sb.Append("    exit 0\n");
         sb.Append("} else {\n");
         sb.Append("    Write-Host ''\n");
-        sb.Append("    Write-Host \"claude si è chiuso con il codice $code.\" -ForegroundColor Yellow\n");
+        sb.Append("    Write-Host \"claude exited with code $code.\" -ForegroundColor Yellow\n");
         sb.Append("}\n");
         return sb.ToString();
     }

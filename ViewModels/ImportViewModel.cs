@@ -31,7 +31,7 @@ public sealed class ImportViewModel : ObservableObject
             if (registered is not null)
             {
                 name = registered.Name;
-                notes.Add($"Già registrato come {registered.Name}");
+                notes.Add($"Already registered as {registered.Name}");
             }
             else
             {
@@ -39,21 +39,21 @@ public sealed class ImportViewModel : ObservableObject
                 takenNames.Add(name);
                 var wanted = c.Manifest?.Name ?? Path.GetFileName(c.Folder);
                 if (!string.Equals(name, wanted, StringComparison.Ordinal))
-                    notes.Add($"Il nome {wanted} è già usato o non valido: verrà importato come {name}");
+                    notes.Add($"The name {wanted} is taken or invalid: it will be imported as {name}");
                 if (c.Manifest?.IsCoordinator == true)
                 {
                     if (coordinator is null)
                     {
                         coordinator = name;
-                        notes.Add("Diventerà il coordinatore");
+                        notes.Add("Will become the coordinator");
                     }
                     else
                     {
-                        notes.Add($"Coordinatore nella configurazione d'origine: ignorato, il coordinatore è {coordinator}");
+                        notes.Add($"Coordinator in its source configuration: ignored, the coordinator is {coordinator}");
                     }
                 }
-                if (c.Manifest is null) notes.Add("Senza expert.json: impostazioni predefinite");
-                if (!c.Status.HasClaudeMd) notes.Add("CLAUDE.md mancante");
+                if (c.Manifest is null) notes.Add("No expert.json: default settings");
+                if (!c.Status.HasClaudeMd) notes.Add("CLAUDE.md missing");
             }
 
             Candidates.Add(new ImportCandidateViewModel(this, c, name, string.Join(" · ", notes), registered is null));
@@ -69,7 +69,7 @@ public sealed class ImportViewModel : ObservableObject
 
     public int SelectedCount => Candidates.Count(c => c.IsSelected);
 
-    public string ImportButtonText => SelectedCount == 1 ? "Importa 1 esperto" : $"Importa {SelectedCount} esperti";
+    public string ImportButtonText => SelectedCount == 1 ? "Import 1 expert" : $"Import {SelectedCount} experts";
 
     public bool CanImport => SelectedCount > 0;
 
@@ -126,10 +126,10 @@ public sealed class ImportCandidateViewModel : ObservableObject
             var parts = new List<string>();
             if (!string.IsNullOrWhiteSpace(Manifest?.Model)) parts.Add(Manifest.Model);
             if (!string.IsNullOrWhiteSpace(Manifest?.Effort)) parts.Add(Manifest.Effort);
-            if (parts.Count == 0) parts.Add("modello predefinito");
+            if (parts.Count == 0) parts.Add("default model");
             parts.Add(Candidate.Status.Skills.Count == 0
-                ? "nessuna skill"
-                : "skill: " + string.Join(", ", Candidate.Status.Skills));
+                ? "no skills"
+                : "skills: " + string.Join(", ", Candidate.Status.Skills));
             return string.Join(" · ", parts);
         }
     }
