@@ -98,6 +98,7 @@ public sealed class MainViewModel : ObservableObject
         RemoveCouncilCommand = new RelayCommand(
             p => Run(() => RemoveCouncil(p as CouncilViewModel)), p => p is CouncilViewModel { IsLaunching: false });
         OpenCouncilFolderCommand = new RelayCommand(p => Run(() => OpenCouncilFolder((CouncilViewModel)p!)), p => p is CouncilViewModel { Error: null });
+        OpenLogbookCommand = new RelayCommand(p => Run(() => OpenLogbook((CouncilViewModel)p!)), p => p is CouncilViewModel);
         ChangeWorkingFolderCommand = new RelayCommand(p => Run(() => ChangeWorkingFolder((CouncilViewModel)p!)), p => p is CouncilViewModel { IsLaunching: false });
         OpenWorkingFolderCommand = new RelayCommand(p => Run(() => OpenWorkingFolder((CouncilViewModel)p!)), p => p is CouncilViewModel);
         ResumeCouncilCommand = new RelayCommand(
@@ -223,6 +224,7 @@ public sealed class MainViewModel : ObservableObject
     public ICommand AddCouncilCommand { get; }
     public ICommand RemoveCouncilCommand { get; }
     public ICommand OpenCouncilFolderCommand { get; }
+    public ICommand OpenLogbookCommand { get; }
     public ICommand LaunchCouncilCommand { get; }
     public ICommand ResumeCouncilCommand { get; }
     public ICommand ChangeWorkingFolderCommand { get; }
@@ -436,7 +438,7 @@ public sealed class MainViewModel : ObservableObject
 
     private static void EditClaudeMd(ExpertViewModel expert)
     {
-        if (expert.ClaudeMdPath is { } path) OpenInEditor(path);
+        if (expert.ClaudeMdPath is { } path) MarkdownWindow.Open(path, MarkdownViewMode.Split, $"{expert.Name} · CLAUDE.md");
     }
 
     /// <summary>Opens (creating it if needed) the expert's own skills folder in Explorer.</summary>
@@ -452,7 +454,7 @@ public sealed class MainViewModel : ObservableObject
         var path = ExpertInspector.CreateClaudeMd(expert.Folder, expert.Name);
         expert.RefreshStatus();
         Revalidate();
-        OpenInEditor(path);
+        MarkdownWindow.Open(path, MarkdownViewMode.Split, $"{expert.Name} · CLAUDE.md");
     }
 
     // ---- Councils ------------------------------------------------------------------------
@@ -503,6 +505,20 @@ public sealed class MainViewModel : ObservableObject
     {
         var dir = AppPaths.CouncilSharedDir(council.Name);
         Process.Start(new ProcessStartInfo { FileName = Path.GetDirectoryName(dir)!, UseShellExecute = true });
+    }
+
+    /// <summary>Opens the logbook the coordinator keeps; it opens at the bottom, where new entries are added.</summary>
+    private static void OpenLogbook(CouncilViewModel council)
+    {
+        var path = AppPaths.CouncilLogbook(council.Name);
+        if (!File.Exists(path))
+        {
+            Info($"Council {council.Name} has no logbook yet.\n\n"
+                 + "The coordinator starts it in the shared folder with the first goal it gets "
+                 + "(councils with two or more experts).");
+            return;
+        }
+        MarkdownWindow.Open(path, MarkdownViewMode.Preview, $"{council.Name} · logbook", scrollToEnd: true);
     }
 
     private void ChangeWorkingFolder(CouncilViewModel council)
@@ -824,19 +840,6 @@ public sealed class MainViewModel : ObservableObject
 
 
     // ---- Shell helpers -------------------------------------------------------------------
-
-    private static void OpenInEditor(string path)
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
-        }
-        catch (Win32Exception)
-        {
-            // No app associated with .md files.
-            Process.Start(new ProcessStartInfo { FileName = "notepad.exe", ArgumentList = { path }, UseShellExecute = true });
-        }
-    }
 
     private static void Run(Action action)
     {

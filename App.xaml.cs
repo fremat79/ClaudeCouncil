@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Threading;
 using ClaudeCouncilManager.Services;
 using ClaudeCouncilManager.ViewModels;
+using ClaudeCouncilManager.Views;
 using WinForms = System.Windows.Forms;
 
 namespace ClaudeCouncilManager;
@@ -24,7 +25,16 @@ public partial class App : Application
 
         var vm = new MainViewModel();
         _window = new MainWindow { DataContext = vm };
-        _window.Closing += (_, _) => vm.SaveNow();
+        _window.Closing += (_, e) =>
+        {
+            // Markdown viewers with unsaved edits get their say first; keeping one open cancels the exit.
+            if (!MarkdownWindow.CloseAll())
+            {
+                e.Cancel = true;
+                return;
+            }
+            vm.SaveNow();
+        };
         // Minimizing sends the window to the notification area; closing still quits the app.
         _window.StateChanged += OnWindowStateChanged;
         CreateTrayIcon();

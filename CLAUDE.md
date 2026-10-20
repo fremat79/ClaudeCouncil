@@ -96,7 +96,9 @@ addresses a session by its `--name`. The app only sets things up:
 - for councils with >1 member, `ProtocolBuilder` renders `Templates/CouncilProtocol.md` +
   `CoordinatorSection.md` / `MemberSection.md` into
   `runtime\<COUNCIL>\<EXPERT>.protocol.md`, passed with `--append-system-prompt-file`;
-- every member gets `runtime\<COUNCIL>\shared` via `--add-dir` for file exchange;
+- every member gets `runtime\<COUNCIL>\shared` via `--add-dir` for file exchange. It survives
+  restarts: the coordinator protocol keeps `tasks.md`, `decisions.md` and an append-only `logbook.md`
+  there and re-reads them on a fresh Start;
 - the coordinator (or the only expert) is launched last (after `CoordinatorDelay`) and alone
   receives the council's initial prompt, only when "Start" starts the council from scratch.
 
@@ -118,6 +120,19 @@ the running set changes, since it happens without user input. The Claude desktop
 
 Templates are `EmbeddedResource`s with logical name `Templates.<file>` (see the .csproj), read
 through `Services/Templates`.
+
+**Markdown viewer/editor (`Views/MarkdownWindow`, `Services/MarkdownRenderer`):** opened by the
+logbook icon on a council card (`OpenLogbook`, path from `AppPaths.CouncilLogbook`, never created
+by the app) and by "Edit CLAUDE.md" / "Create CLAUDE.md". It's a non-modal window, one per file
+(`MarkdownWindow.Open` reuses it), with Preview / Edit / Side by side modes:
+- the preview is a native `FlowDocument` built from Markdig's syntax tree, so it follows the theme
+  through resource references. There is no WebView and no network access: only local images are
+  shown, HTML is shown as text, and a link to a local non-Markdown file only reveals it in
+  Explorer;
+- a `FileSystemWatcher` reloads the file when a session writes to it. With unsaved edits it shows
+  a banner instead (Reload / Keep my edits). Saving keeps the file's BOM and line endings;
+- `App` calls `MarkdownWindow.CloseAll()` before the main window closes, so unsaved edits get a
+  prompt and can cancel the exit.
 
 **Claude Code availability (`ClaudeLocator`, `SettingsViewModel.RecheckClaudeAsync`):** councils
 can always be configured, but launching needs a native `claude.exe` ≥ 2.1.234 (cross-session

@@ -13,7 +13,7 @@
     <RootNamespace>ClaudeCouncilManager</RootNamespace>
     <AssemblyName>ClaudeCouncilManager</AssemblyName>
     <!-- Read by Installer.iss for the setup's version and file name. -->
-    <Version>1.0.0.1</Version>
+    <Version>1.0.0.2</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\council.ico</ApplicationIcon>
   </PropertyGroup>
@@ -39,6 +39,7 @@
     <EmbeddedResource Include="Templates\*.md" LogicalName="Templates.%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Markdig" Version="1.4.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

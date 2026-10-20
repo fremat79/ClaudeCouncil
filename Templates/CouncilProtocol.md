@@ -20,7 +20,7 @@ on this machine and working together by exchanging messages.
   `ListAgents` to see who is online.
 - Answers arrive as messages in your session: there is no need to check or wait actively. When a
   message arrives, you start a new turn.
-- The first line of every message is `[TASK-n] <request|response|question|status>: <one-line summary>`,
+- The first line of every message is `[TASK-n] <request|plan|response|question|status>: <one-line summary>`,
   followed by the details. Use the same `TASK-n` for the whole exchange about a task.
 - Write self-contained messages: the recipient doesn't see your conversation.
 - For files or long content use the shared folder `{{SHARED_DIR}}` (every member can access it)

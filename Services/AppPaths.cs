@@ -63,6 +63,13 @@ public static class AppPaths
     public static string StopFile(string councilName, string expertName)
         => Path.Combine(CouncilRuntimeDir(councilName), expertName + ".stop");
 
+    /// <summary>
+    /// The logbook the coordinator keeps in the shared folder (see Templates/CoordinatorSection.md).
+    /// Only the path: nothing is created, the coordinator writes it.
+    /// </summary>
+    public static string CouncilLogbook(string councilName)
+        => Path.Combine(RuntimeRoot, councilName, "shared", "logbook.md");
+
     /// <summary>Folder every member of a council gets via <c>--add-dir</c> to exchange files.</summary>
     public static string CouncilSharedDir(string councilName)
     {

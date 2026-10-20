@@ -112,9 +112,9 @@
                                     <StackPanel>
                                         <TextBlock Text="{Binding Name}" FontSize="20" FontWeight="SemiBold"
                                                    TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource TextPrimary}" Margin="0,0,62,2"/>
+                                                   Foreground="{DynamicResource TextPrimary}" Margin="0,0,94,2"/>
                                         <TextBlock Text="{Binding WorkingFolder}" ToolTip="{Binding WorkingFolder}" FontSize="11"
-                                                   TextTrimming="CharacterEllipsis" Margin="0,0,62,10"
+                                                   TextTrimming="CharacterEllipsis" Margin="0,0,94,10"
                                                    Foreground="{DynamicResource TextMuted}"/>
                                         <ItemsControl ItemsSource="{Binding Chips}">
                                             <ItemsControl.ItemsPanel>
@@ -168,6 +168,10 @@
                                 </DockPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
                                             Margin="0,-6,-6,0">
+                                    <Button Content="&#xE736;" Style="{StaticResource CardIconButtonStyle}" Margin="0,0,4,0"
+                                            ToolTip="Logbook: the work done by the council, as recorded by its coordinator"
+                                            Command="{Binding DataContext.OpenLogbookCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"/>
                                     <ToggleButton IsChecked="{Binding IsFavorite}" Style="{StaticResource FavoriteToggleStyle}"
                                                   Margin="0,0,4,0"/>
                                     <Button Style="{StaticResource CardDeleteButtonStyle}" Margin="0" ToolTip="Delete council (Del)"
